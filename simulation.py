@@ -23,7 +23,7 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
     weights_init = np.array([[-1.0, -48.7], [1.0, 1.78]])
 
     ext_input_rates_init = [2.5 * 1e3, 4.5 * 1e3]  # external input rate (Hz) to [inh. neuron, exc. neuron] type
-    ext_connectivity_init = [1.27, 1.78]  # external input weights to [inh. neuron, exc. neuron] type
+    ext_connectivity_init = [1.27 * 1e-7, 1.78 * 1e-7]  # external input weights to [inh. neuron, exc. neuron] type
 
     # Init different neuron type params
     weights = np.zeros((n_ges, n_ges))  # weight matrix
@@ -80,13 +80,15 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
         curr_neuron_inputs[:] = 0
 
         # Determine and update external input
-        input_now = next_ext >= timestep
-        if sum(input_now) > 0:
-            a = 1
-        next_ext[input_now] += 1.0 / ext_input_rates[input_now]  # add random offset  # update next input step
+        ext_now = next_ext < timestep ######
+        while any(item < timestep for item in next_ext):
+            ext_now = next_ext < timestep
+            next_ext[ext_now] += 1.0 / ext_input_rates[ext_now]  # add random offset  # update next input step
+            curr_neuron_inputs[ext_input_neurons] += ext_connectivity[ext_input_neurons] * ext_now[ext_input_neurons]
 
-        # Sum up input on each neuron
-        curr_neuron_inputs[ext_input_neurons] += ext_connectivity[ext_input_neurons] * input_now[ext_input_neurons]
+        if sum(ext_now) > 0: ######
+            a = 1
+        # Sum up internal network inputs
         curr_neuron_inputs += np.sum(weights[spikes[i, :], :], 0)
 
         # Update LIF model
