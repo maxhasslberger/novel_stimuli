@@ -3,32 +3,32 @@ from functions import step_LIF
 import numpy as np
 
 
-# TODO: plasticity adjustments, normalize weights
-
 def run_sim(n_neurons, n_ext, dt, t_ges):
-
     #########################################################################################
     # Init
     #########################################################################################
 
     # membrane dynamics
     tau_init = [20 * 1e-3, 20 * 1e-3]  # membrane time constant s [inh. neuron, exc. neuron] type
-    C_init = [300 * 1e-9, 300 * 1e-9]  # membrane capacitance F
+    C_init = [300 * 1e-12, 300 * 1e-12]  # membrane capacitance F
     v_rest_init = [-70 * 1e-3, -62 * 1e-3]  # resting potential V [inh. neuron, exc. neuron] type
-    v_th_init = [20 * 1e-3, 10 * 1e-3]  # cutoff for voltage. when crossed, record a spike and reset V
-    # v_th_add = [10 * 1e-3, 10 * 1e-3]  # increase in threshold post spike V
+    v_th_init = [-52 * 1e-3, -52 * 1e-3]  # cutoff for voltage. when crossed, record a spike and reset V
     t_refr_ref_init = [1 * 1e-3, 1 * 1e-3]  # absolute refractory period s
 
     n_ges = sum(n_neurons)
-    weights_init = np.array([[-1.0, -48.7], [1.0, 1.78]])
+    weights_init = np.array([[-16.2 * 1e-12, -145.85 * 1e-12], [1.27 * 1e-12, 11.59 * 1e-12]])
 
-    ext_input_rates_init = [2.5 * 1e3, 4.5 * 1e3]  # external input rate (Hz) to [inh. neuron, exc. neuron] type
-    ext_connectivity_init = [1.27 * 1e-7, 1.78 * 1e-7]  # external input weights to [inh. neuron, exc. neuron] type
+    ext_baseline_rates_init = [2.5 * 1e3, 4.5 * 1e3]  # external input rate (Hz) to [inh. neuron, exc. neuron] type
+    ext_stim_rates_init = [1.2 * 1e3, 12 * 1e3]
+    ext_connectivity_init = [1.27 * 1e-9, 1.78 * 1e-9]  # external input weights to [inh. neuron, exc. neuron] type
+    # TODO: appropriate results for 1e-12 connectivity
 
     # Init different neuron type params
     weights = np.zeros((n_ges, n_ges))  # weight matrix
-    next_ext = np.zeros(n_ges)  # Next external input time step
-    ext_input_rates = np.zeros(n_ges)
+    nextx_base = np.zeros(n_ges)  # Next external input time step
+    nextx_stim = np.zeros(n_ges)  # Next external input time step
+    ext_baseline_rates = np.zeros(n_ges)
+    ext_stim_rates = np.zeros(n_ges)
     ext_connectivity = np.zeros(n_ges)
 
     tau = np.zeros(n_ges)
@@ -37,7 +37,7 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
     v_th = np.zeros(n_ges)
     t_refr_ref = np.zeros(n_ges)
 
-    ext_input_neurons = np.zeros(n_ges, dtype=bool)  # selected input neurons for external stimulus
+    ext_stim_neurons = np.zeros(n_ges, dtype=bool)  # selected input neurons for external stimulus
 
     n_neuron_types = n_neurons.shape[0]
     n_types_i = np.append(0, n_neurons)
@@ -51,16 +51,18 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
         t_refr_ref[arg] = t_refr_ref_init[i]
 
         ext_connectivity[arg] = ext_connectivity_init[i]
-        ext_input_rates[arg] = ext_input_rates_init[i]
-        next_ext[arg] = 1.0 / ext_input_rates[arg]  # add random offset
+        ext_baseline_rates[arg] = ext_baseline_rates_init[i]
+        ext_stim_rates[arg] = ext_stim_rates_init[i]
+        nextx_base[arg] = (1.0 + np.random.exponential(1.0, n_neurons[i])) / ext_baseline_rates[arg]
+        nextx_stim[arg] = (1.0 + np.random.exponential(1.0, n_neurons[i])) / ext_stim_rates[arg]
 
         tmp = np.copy(arg)
         np.random.shuffle(tmp)
-        ext_input_neurons[tmp[:n_ext[i]]] = True  # set n random neurons from type i to external input neurons
+        ext_stim_neurons[tmp[:n_ext[i]]] = True  # set n random neurons from type i to external input neurons
 
         for j in range(n_neuron_types):
-            weights[arg, n_types_i[j]:n_types_i[1:j + 2].sum()] = weights_init[i, j] * \
-                                                          (1 + np.random.rand(n_neurons[i], n_neurons[j]))
+            weights[arg, n_types_i[j]:n_types_i[1:j + 2].sum()] = weights_init[i, j]  # * \
+            # (1 + np.random.rand(n_neurons[i], n_neurons[j]))
 
     curr_neuron_inputs = np.zeros(n_ges)  # summed up inputs at current time step
     t_refr = np.zeros(n_ges)  # current absolute refractory period
@@ -71,28 +73,39 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
 
     n_steps = round(t_ges / dt)
 
-    v_m = np.zeros((n_steps+1, n_ges))
+    v_m = np.zeros((n_steps + 1, n_ges))
     v_m[0, :] = v_rest + (v_th - v_rest) * np.random.rand(n_ges)  # initial membrane potential
-    spikes = np.zeros((n_steps+1, n_ges), dtype=bool)  # spike of neuron during last step?
+    spikes = np.zeros((n_steps + 1, n_ges), dtype=bool)  # spike of neuron during last step?
 
+    # other_neurons = np.invert(ext_stim_neurons)
     for i in range(n_steps):
         timestep = i * dt
         curr_neuron_inputs[:] = 0
 
         # Determine and update external input
-        ext_now = next_ext < timestep ######
-        while any(item < timestep for item in next_ext):
-            ext_now = next_ext < timestep
-            next_ext[ext_now] += 1.0 / ext_input_rates[ext_now]  # add random offset  # update next input step
-            curr_neuron_inputs[ext_input_neurons] += ext_connectivity[ext_input_neurons] * ext_now[ext_input_neurons]
+        base_now = nextx_base < timestep  ######debug
+        nextx = np.minimum(nextx_base, nextx_stim)
+        while any(item < timestep for item in nextx):
+            base_now = nextx_base < timestep
+            stim_now = nextx_stim < timestep
 
-        if sum(ext_now) > 0: ######
+            nextx_base[base_now] += (1.0 + np.random.exponential(0.1, sum(base_now))) / ext_baseline_rates[base_now]
+            nextx_stim[stim_now] += (1.0 + np.random.exponential(0.1, sum(stim_now))) / ext_baseline_rates[stim_now]
+            nextx = np.minimum(nextx_base, nextx_stim)
+
+            curr_neuron_inputs += ext_connectivity * base_now
+            curr_neuron_inputs[ext_stim_neurons] += ext_connectivity[ext_stim_neurons] * stim_now[ext_stim_neurons]
+
+        if sum(base_now) > 0:  ######debug
             a = 1
         # Sum up internal network inputs
-        curr_neuron_inputs += np.sum(weights[spikes[i, :], :], 0)
+        curr_neuron_inputs += np.sum(weights[spikes[i, :], :], 0)  # TODO: multiply weights by v_peak?
 
         # Update LIF model
-        [v_m[i+1, :], t_refr, spikes[i+1, :]] = \
+        [v_m[i + 1, :], t_refr, spikes[i + 1, :]] = \
             step_LIF(v_m[i, :], curr_neuron_inputs, v_rest, v_th, tau, C, t_refr, t_refr_ref, dt)
 
-    return v_m, spikes, ext_input_neurons
+        if sum(spikes[i + 1, :]):  #####debug
+            a = 1
+
+    return v_m, spikes, ext_stim_neurons
