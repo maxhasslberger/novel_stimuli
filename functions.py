@@ -1,6 +1,35 @@
 import numpy as np
 
 
+def f_function(x):
+    r = 3.0
+    f = np.zeros(x.shape[0])
+
+    f[x > 0] = r * x[x > 0]
+    f[x > 1/r] = 1.0
+    return f
+
+
+def forward_euler(dx_dt, x0, dt):
+    return x0 + dx_dt * dt
+
+
+def cont_rect_pulses(stim_dur, inter_stim_dur, steps, dt):
+    stim_steps = int(stim_dur / dt)
+    inter_stim_steps = int(inter_stim_dur / dt)
+    pulse_times = np.arange(0, steps-1, stim_steps + inter_stim_steps)
+    signal = pulse_train(np.arange(steps), pulse_times, rect(stim_steps))
+    return signal
+
+
+def rect(T):
+    return lambda t: (0 <= t) & (t < T)
+
+
+def pulse_train(t, pulse_times, fun):
+    return np.sum(fun(t - pulse_times[:, np.newaxis]), axis=0)
+
+
 def step_LIF(v_m, i_input, v_rest, v_th, tau, c_m, t_refr, t_refr_ref, dt):
     # spike determination
     spikes = np.zeros(v_m.shape[0], dtype=bool)

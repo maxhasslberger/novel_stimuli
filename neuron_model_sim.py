@@ -1,9 +1,10 @@
 from functions import step_LIF
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
-def run_sim(n_neurons, n_ext, dt, t_ges):
+def run_sim(n_neurons, n_ext, dt, n_steps):
     #########################################################################################
     # Init
     #########################################################################################
@@ -67,17 +68,16 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
     curr_neuron_inputs = np.zeros(n_ges)  # summed up inputs at current time step
     t_refr = np.zeros(n_ges)  # current absolute refractory period
 
-    #########################################################################################
-    # Simulation
-    #########################################################################################
-
-    n_steps = round(t_ges / dt)
 
     v_m = np.zeros((n_steps + 1, n_ges))
     v_m[0, :] = v_rest + (v_th - v_rest) * np.random.rand(n_ges)  # initial membrane potential
     spikes = np.zeros((n_steps + 1, n_ges), dtype=bool)  # spike of neuron during last step?
-
     # other_neurons = np.invert(ext_stim_neurons)
+
+    #########################################################################################
+    # Simulation
+    #########################################################################################
+
     for i in range(n_steps):
         timestep = i * dt
         curr_neuron_inputs[:] = 0
@@ -109,3 +109,57 @@ def run_sim(n_neurons, n_ext, dt, t_ges):
             a = 1
 
     return v_m, spikes, ext_stim_neurons
+
+
+def exe_neuron_model():
+    test_factor = 1
+
+    n_neurons = np.array([100 * test_factor, 400 * test_factor])  # ratio 1:4
+    n_ext = np.array([15 * test_factor, 20 * test_factor])
+    dt = 0.1 * 1e-3  # 0.1 ms
+    t_ges = 100 * 1e-3  # 100 ms
+    n_steps = round(t_ges / dt)
+
+    [v_m, spikes, ext_input_neurons] = run_sim(n_neurons, n_ext, dt, n_steps)
+
+    print("Spikes total:\n", sum(spikes))
+    print("External input neurons:\n", ext_input_neurons.astype(int))
+
+    other_neurons = np.invert(ext_input_neurons)
+
+    # for i in range(sum(ext_input_neurons)):
+    #     plt.plot(v_m[:, np.where(ext_input_neurons)[0][i]])
+
+    plt.plot(v_m[:, np.where(ext_input_neurons)[0][0]])
+    plt.plot(v_m[:, np.where(ext_input_neurons)[0][-1]])
+
+    # for i in range(sum(other_neurons)):
+    #     plt.plot(v_m[:, np.where(other_neurons)[0][i]])
+
+    plt.plot(v_m[:, np.where(other_neurons)[0][0]])
+    plt.plot(v_m[:, np.where(other_neurons)[0][-1]])
+
+    plt.legend(['inh_stim', 'exc_stim', 'inh_nostim', 'exc_nostim'])
+    plt.title('Membrane potential')
+
+    plt.figure()
+
+    # for i in range(sum(ext_input_neurons)):
+    #     plt.plot(spikes[:, np.where(ext_input_neurons)[0][i]])
+
+    plt.plot(spikes[:, np.where(ext_input_neurons)[0][0]])
+    plt.plot(spikes[:, np.where(ext_input_neurons)[0][-1]])
+
+    # for i in range(sum(other_neurons)):
+    #     plt.plot(spikes[:, np.where(other_neurons)[0][i]])
+
+    plt.plot(spikes[:, np.where(other_neurons)[0][0]])
+    plt.plot(spikes[:, np.where(other_neurons)[0][-1]])
+
+    # plt.figure()
+    # for i in range(n_ext[0]):
+    #     plt.plot(v_m[:, np.where(ext_input_neurons)[0][i]])
+    plt.legend(['inh_stim', 'exc_stim', 'inh_nostim', 'exc_nostim'])
+    plt.title('Spikes')
+
+    plt.show()
