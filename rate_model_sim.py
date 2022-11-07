@@ -1,6 +1,7 @@
 from functions import f_function, forward_euler, cont_rect_pulses
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def run_sim(i_t, dt, steps):
@@ -58,4 +59,17 @@ def exe_wilson_cowan():
 
     [f_rates, thal_input] = run_sim(i_t, dt, steps)
 
+    for i in range(f_rates.shape[1]):
+        plt.plot(np.arange(0, t_ges + dt, dt), f_rates[:, i])
 
+    plt.legend(['exc', 'pv', 'sst'])
+    plt.title("Firing rates")
+    plt.xlabel("t / s")
+
+    plt.figure()
+
+    plt.plot(np.arange(0, t_ges + dt, dt), thal_input)
+    plt.title("Thalamic input")
+    plt.xlabel("t / s")
+
+    plt.show()
