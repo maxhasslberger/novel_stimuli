@@ -10,17 +10,20 @@ def run_sim(i_t, d_flag, dt, steps):
     ############################################################
 
     # neuron constants -> [exc, pv, sst]
-    thresholds = [0.7, 1.0, 1.0]
-    tau = [10 * 1e-3, 10 * 1e-3, 10 * 1e-3]  # s
-    i_opt = [0.0, -2.0, -1.0]
-    thal_flag = np.array([1, 1, 0])
+    thresholds = [0.7, 1.0, 1.0, 0.0]
+    tau = [10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 10 * 1e-3]  # s
+    i_opt = [0.0, -2.0, -1.0, 0.0]
+
+    thal_flag = np.array([1, 1, 0, 0])
+    weights = [[1.1, -2, -1, -0.0], [1, -2, -2, -0.0], [6, -0, -0, -0.0], [0, -0, -0, -0.0]]
+    # [[post_exc], [post_pv], [post_sst]]
 
     # init firing rates
     n_subtypes = len(tau)
     f_rates = np.zeros((steps + 1, n_subtypes))
     f_rates[0, :] = np.random.rand(n_subtypes)
 
-    weights = [[1.1, -2, -1], [1, -2, -2], [6, -0, -0]]  # [[post_exc], [post_pv], [post_sst]]
+    # Depression constants
     D = 1.0
     a = 0.5
 
@@ -62,7 +65,7 @@ def exe_wilson_cowan():
     t_ges = 1000 * 1e-3  # s
     steps = int(t_ges / dt)
 
-    d_flag = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
+    d_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
     # input stimulus
     stim_dur = 100 * 1e-3
@@ -70,13 +73,13 @@ def exe_wilson_cowan():
     i_t = cont_rect_pulses(stim_dur, inter_stim_dur, steps, dt)  # TODO: Amplitude?
 
     [f_rates, thal_input] = run_sim(i_t, d_flag, dt, steps)
-    d_flag = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
+    d_flag = np.array([[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
     [f_rates2, _] = run_sim(i_t, d_flag, dt, steps)
 
     for i in range(f_rates.shape[1]):
         plt.plot(np.arange(0, t_ges + dt, dt), f_rates[:, i])
 
-    plt.legend(['exc', 'pv', 'sst'])
+    plt.legend(['exc', 'pv', 'sst', 'vip'])
     plt.title("Firing rates")
     plt.xlabel("t / s")
 
