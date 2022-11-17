@@ -25,10 +25,12 @@ def run_sim(i_t, vip_in, f_flag, d_flag, dt, steps):
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - post exc.: Park2020; post inh. types: Campagnola2022
-    D = 1.0
+    D = np.zeros(steps + 1)
+    D[0] = 1.0
     a_dep = np.array([[-0.0, 0.5, 0.0, 0.0], [-0, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
 
-    F = 0.0
+    F = np.zeros(steps + 1)
+    F[0] = 0.0
     a_fac = np.array([[0.0, -0.0, -1.0, -0.0], [0, -0, -0, -0], [0, -0, -0, -0.05], [0, -0, -0.28, -0.04]])
 
     # thalamic input
@@ -52,18 +54,18 @@ def run_sim(i_t, vip_in, f_flag, d_flag, dt, steps):
         #     deb = 1
 
         # Update depression and facilitation terms
-        dD_dt = (1 - D) / tau_d1 - D * i_t[i] / tau_d2
-        dF_dt = - F / tau_d1 + i_t[i] / tau_d2
-        D = forward_euler(dD_dt, D, dt)
-        F = forward_euler(dF_dt, F, dt)
+        dD_dt = (1 - D[i]) / tau_d1 - D[i] * i_t[i] / tau_d2
+        dF_dt = - F[i] / tau_d1 + i_t[i] / tau_d2
+        D[i+1] = forward_euler(dD_dt, D[i], dt)
+        F[i+1] = forward_euler(dF_dt, F[i], dt)
 
         # Update Wilson-Cowan model
-        f_arg = np.sum((weights + d_flag * a_dep * (1 - D) + f_flag * a_fac * F) * f_rates[i, :],
+        f_arg = np.sum((weights + d_flag * a_dep * (1 - D[i+1]) + f_flag * a_fac * F[i+1]) * f_rates[i, :],
                        axis=1) + i_opt + thal_flag * q * thal_input[i + 1] * i_t[i] + vip_flag * vip_in[i]
         d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
         f_rates[i + 1, :] = forward_euler(d_dt, f_rates[i, :], dt)  # update firing rates
 
-    return f_rates, thal_input
+    return f_rates, thal_input, F, D
 
 
 def exe_wilson_cowan():
@@ -85,20 +87,20 @@ def exe_wilson_cowan():
 
     # Higher order input
     stim_dur = 600 * 1e-3
-    inter_stim_dur = 400 * 1e-3
+    inter_stim_dur = 1000 * 1e-3
     magnitude = 3.0
     vip_in = magnitude * cont_rect_pulses(stim_dur, inter_stim_dur, steps, dt)
 
-    [f_rates_plas, thal_input] = run_sim(i_t, vip_in, f_flag, d_flag, dt, steps)
+    [f_rates, thal_input, F, D] = run_sim(i_t, vip_in, f_flag, d_flag, dt, steps)
 
     d_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
     f_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
-    [f_rates_noplas, _] = run_sim(i_t, vip_in, f_flag, d_flag, dt, steps)
+    [f_rates2, _, _, _] = run_sim(i_t, vip_in, f_flag, d_flag, dt, steps)
 
     time = np.arange(0, t_ges + dt, dt)
 
-    for i in range(f_rates_plas.shape[1]):
-        plt.plot(time, f_rates_plas[:, i])
+    for i in range(f_rates.shape[1]):
+        plt.plot(time, f_rates[:, i])
 
     plt.legend(['exc', 'pv', 'sst', 'vip'])
     plt.title("Firing rates")
@@ -106,11 +108,20 @@ def exe_wilson_cowan():
 
     plt.figure()
 
-    plt.plot(time, f_rates_plas[:, 0])
-    plt.plot(time, f_rates_noplas[:, 0])
+    plt.plot(time, f_rates[:, 0])
+    plt.plot(time, f_rates2[:, 0])
 
     plt.legend(['Plasticity', 'No Plasticity'])
     plt.title("Excitatory Firing rates")
+    plt.xlabel("t / s")
+
+    plt.figure()
+
+    plt.plot(time, F)
+    plt.plot(time, D)
+
+    plt.legend(['F', 'D'])
+    plt.title("Short-term plasticity")
     plt.xlabel("t / s")
 
     # plt.figure()
