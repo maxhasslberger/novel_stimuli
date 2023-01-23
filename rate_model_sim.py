@@ -12,7 +12,7 @@ def run_sim(n_units, i_t, baseline, vip_in, f_flag, d_flag, dt, steps, v_flag):
 
     # neuron constants -> [exc, pv, sst, vip]
     thresholds = unit_gen(np.array([-0.1, -0.1, 0.0, 0.0]), n_units)  # -> baseline
-    tau = unit_gen(np.array([10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 30 * 1e-3]), n_units)  # s
+    tau = unit_gen(np.array([10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 10 * 1e-3]), n_units)  # s
     # i_opt = [0.0, -0.0, -0.0, 0.0]  # [0.0, -2.0, -1.0, 0.0]
 
     thal_flag = unit_gen(np.array([1, 1, 0, 0]), n_units)
@@ -20,7 +20,7 @@ def run_sim(n_units, i_t, baseline, vip_in, f_flag, d_flag, dt, steps, v_flag):
 
     w_star = np.array([0.667, 1.25, 0.125, 0.0])  # only with exc. pre synapses, Park2020
     w_star = w_star[:, np.newaxis]
-    weights = np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -3, -5]])
+    weights = np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
     # init firing rates
@@ -130,6 +130,7 @@ def exe_wilson_cowan():
     # d_flag = np.ones((4, 4))
     f_flag = d_flag
     v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 1]])
+    # v_flag = np.zeros((4, 4))
     # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
     # Thalamic tuning
@@ -148,7 +149,7 @@ def exe_wilson_cowan():
     magnitude = 0.1
     i_t = magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
-    i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
+    # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
     i_t = np.tile(i_t, (no_of_units, 1))
     i_t = np.swapaxes(i_t, 0, 1)
     # i_t = np.ones(steps)
@@ -157,11 +158,12 @@ def exe_wilson_cowan():
     stim_dur = 20 * 1e-3
     inter_stim_dur = 380 * 1e-3
     inter_trial_dur = 780 * 1e-3
-    magnitude = 1.0
+    magnitude = 0.3
     vip_in = magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    vip_in = vip_in + 2 * cont_pulse_trials(1, 400 * 1e-3, inter_stim_dur, 7600 * 1e-3, 1, steps, dt)
-    # vip_in[84000:85000] = 0
+    # vip_in = vip_in + 1 * cont_pulse_trials(1, 400 * 1e-3, inter_stim_dur, 7600 * 1e-3, 1, steps, dt)
+    # vip_in[84000:84300] = 1
+    # vip_in[84000:84200] = 1.5
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur, 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
 
     vip_in = np.tile(vip_in, (no_of_units, 1))
