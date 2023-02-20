@@ -20,7 +20,11 @@ def run_sim(n_units, i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, s
 
     w_star = np.array([0.667, 1.25, 0.125, 0.0])  # only with exc. pre synapses, Park2020
     w_star = w_star[:, np.newaxis]
-    weights = np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
+
+    w_amp = 1.0
+    weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
+    weights = w_amp * np.array([[1.1, -2, -1, -0.0], [1, -2, -2, -0.0], [6, -0, -0, -10], [0, -0.0, -0.1, -5]])
+    # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
     # init firing rates
@@ -29,15 +33,19 @@ def run_sim(n_units, i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, s
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - Campagnola2022
+    stp_amp = 0.25
+
     D = np.zeros((steps + 1, n_units))
     D[0, :] = 1.0
     V = np.zeros((steps + 1, n_units))
     V[0, :] = 1.0
-    a_dep = np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
+    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
+    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0, 0, 0], [-0, 0, 0, 0]])
 
     F = np.zeros((steps + 1, n_units))
     V2 = np.zeros((steps + 1, n_units))
-    a_fac = np.array([[0.0, -0.0, -0.0, -0.0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0.0, -0.0, -0.0, -0.0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0.0, -0.0, -0.0, -0.0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0, -0, -0.28, -0.04]])
 
     # thalamic input
     # q = 5
@@ -102,6 +110,7 @@ def run_sim(n_units, i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, s
         tmp = np.swapaxes(tmp, 0, 1)
         f_rates_tmp = np.tile(f_rates[i, :, :], (n_subtypes, 1, 1))
 
+        # thal_arg[i + 1, :] = 1
         f_arg = np.sum(tmp * f_rates_tmp, axis=1) + cross_exc_in \
                 + thal_flag * q_thal * (thal_arg[i + 1, :] + cross_thal) + vip_flag * q_vip * vip_in[i, :n_units]
         d_dt = (-f_rates[i, :, :] + f_function(f_arg - thresholds)) / tau
@@ -129,7 +138,7 @@ def exe_wilson_cowan():
     # d_flag = np.zeros((4, 4))
     # d_flag = np.ones((4, 4))
     f_flag = d_flag
-    v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 1]])
+    v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]])
     # v_flag = np.zeros((4, 4))
     # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
@@ -156,14 +165,16 @@ def exe_wilson_cowan():
 
     # Higher order input
     stim_dur = 20 * 1e-3
-    inter_stim_dur = 380 * 1e-3
-    inter_trial_dur = 780 * 1e-3
+    inter_stim_dur = 400 * 1e-3 - stim_dur
+    inter_trial_dur = 800 * 1e-3 - stim_dur
     q_vip = 0.5
+    # q_vip = 1
     vip_in = cont_pulse_trials(0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    vip_in = vip_in + 2* cont_pulse_trials(1, 400 * 1e-3, inter_stim_dur, 7600 * 1e-3, 1, steps, dt) # probier länger anhaltende ramp - sst bei stim down
+    stim_dur = 400 * 1e-3
+    vip_in = vip_in + 2.0 * cont_pulse_trials(1, stim_dur, inter_stim_dur, 8000 * 1e-3 - stim_dur, 1, steps, dt)
     # vip_in[84000:84300] = 1
-    # vip_in[84000:84200] = 1.5
+    # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur, 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
 
     vip_in = np.tile(vip_in, (no_of_units, 1))
