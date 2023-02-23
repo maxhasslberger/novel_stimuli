@@ -44,8 +44,8 @@ def run_sim(n_units, i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, s
 
     F = np.zeros((steps + 1, n_units))
     V2 = np.zeros((steps + 1, n_units))
-    a_fac = stp_amp * np.array([[0.0, -0.0, -0.0, -0.0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
-    a_fac = stp_amp * np.array([[0.0, -0.0, -0.0, -0.0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0, -0, -0.28, -0.04]])
 
     # thalamic input
     # q = 5
@@ -127,7 +127,7 @@ def unit_gen(arr, no_of_units):
 
 
 def exe_wilson_cowan():
-    dt = 0.1 * 1e-3  # s
+    dt = 0.025 * 1e-3  # s
     t_ges = 10000 * 1e-3  # s
     steps = int(t_ges / dt)
     no_of_units = 1
@@ -146,17 +146,17 @@ def exe_wilson_cowan():
     baseline = 0.0
 
     # input stimulus
-    stim_dur = 100 * 1e-3
-    inter_stim_dur = 300 * 1e-3
+    stim_dur = 250 * 1e-3
+    inter_stim_dur = 500 * 1e-3
     # inter_trial_dur = 2400 * 1e-3
-    inter_trial_dur = 700 * 1e-3
+    inter_trial_dur = 1250 * 1e-3
 
     # stim_dur = 200 * 1e-3
     # inter_stim_dur = 600 * 1e-3
     # inter_trial_dur = 1400 * 1e-3
-    trial_pulses = 20
+    trial_pulses = 7
     q_thal = 0.1
-    i_t = cont_pulse_trials(0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
     # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
     i_t = np.tile(i_t, (no_of_units, 1))
@@ -165,14 +165,14 @@ def exe_wilson_cowan():
 
     # Higher order input
     stim_dur = 20 * 1e-3
-    inter_stim_dur = 400 * 1e-3 - stim_dur
-    inter_trial_dur = 800 * 1e-3 - stim_dur
+    inter_stim_dur = 750 * 1e-3 - stim_dur
+    inter_trial_dur = 1500 * 1e-3 - stim_dur
     q_vip = 0.5
     # q_vip = 1
-    vip_in = cont_pulse_trials(0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    stim_dur = 400 * 1e-3
-    vip_in = vip_in + 2.0 * cont_pulse_trials(1, stim_dur, inter_stim_dur, 8000 * 1e-3 - stim_dur, 1, steps, dt)
+    stim_dur = 750 * 1e-3
+    vip_in = vip_in + 2.0 * cont_pulse_trials(1, int(0.525*steps), stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
     # vip_in[84000:84300] = 1
     # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur, 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)

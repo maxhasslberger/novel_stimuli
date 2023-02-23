@@ -14,13 +14,13 @@ def forward_euler(dx_dt, x0, dt):
     return x0 + dx_dt * dt
 
 
-def cont_pulse_trials(mode, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt):
+def cont_pulse_trials(mode, off_steps, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt):
     trial_dur = (stim_dur + inter_stim_dur) * trial_pulses - inter_stim_dur
-    signal = np.array([])
     trial_steps = trial_dur / dt
     inter_trial_steps = inter_trial_dur / dt
+    signal = np.zeros(off_steps)
 
-    for i in range(int(np.ceil(steps / (trial_steps + inter_trial_steps)))):
+    for i in range(int(np.ceil((steps - off_steps) / (trial_steps + inter_trial_steps)))):
         signal = np.append(signal, cont_rect_pulses(mode, stim_dur, inter_stim_dur, trial_steps, dt))  # one pulse
         signal = np.append(signal, np.zeros(int(inter_trial_steps)))
 
