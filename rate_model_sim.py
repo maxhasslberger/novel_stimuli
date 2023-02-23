@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def run_sim(i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
+def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
     # Init
     ############################################################
@@ -18,11 +18,11 @@ def run_sim(i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_f
     thal_flag = np.array([1, 1, 0, 0])
     vip_flag = np.array([0, 0, 0, 1])
 
-    w_star = np.array([0.667, 1.25, 0.125, 0.0])  # only with exc. pre synapses, Park2020
-    w_star = w_star[:, np.newaxis]
+    # w_star = np.array([0.667, 1.25, 0.125, 0.0])  # only with exc. pre synapses, Park2020
+    # w_star = w_star[:, np.newaxis]
 
     w_amp = 1.0
-    weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
+    # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
     weights = w_amp * np.array([[1.1, -2, -1, -0.0], [1, -2, -2, -0.0], [6, -0, -0, -10], [0, -0.0, -0.1, -5]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
@@ -39,17 +39,17 @@ def run_sim(i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_f
     D[0] = 1.0
     V = np.zeros((steps + 1))
     V[0] = 1.0
-    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
+    # a_dep = np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
     a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0, 0, 0], [-0, 0, 0, 0]])
 
     F = np.zeros((steps + 1))
     V2 = np.zeros((steps + 1))
-    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
+    # a_fac = np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
     a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0, -0, -0.28, -0.04]])
 
     # thalamic input
     # q = 5
-    alpha = 0.65
+    # alpha = 0.65
     tau_d1 = 1500 * 1e-3  # s
     tau_d2 = 20 * 1e-3  # s
     g_0 = 1
@@ -66,7 +66,7 @@ def run_sim(i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_f
         # Update thalamic input
         dg_dt = (g_0 - thal_input[i]) / tau_d1 - thal_input[i] * i_t[i] / tau_d2
         thal_input[i + 1] = forward_euler(dg_dt, thal_input[i], dt)
-        thal_arg[i + 1] = thal_input[i + 1] * i_t[i] * (1 - baseline) + baseline
+        # thal_arg[i + 1] = thal_input[i + 1] * i_t[i]
 
         # if f_rates[i, 0, 0] >= 0.7:  # debug
         #     if deb != i - 1:
@@ -105,18 +105,19 @@ def run_sim(i_t, baseline, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_f
         #     cross_thal = np.zeros((n_subtypes, n_units))
 
         # Update Wilson-Cowan model
-        tmp = weights + d_flag * a_dep * (1 - D[i + 1]) + v_flag * a_dep * (1 - V[i + 1]) + f_flag * a_fac * F[i + 1] + v_flag * a_fac * V2[i+1]
+        tmp = weights + d_flag * a_dep * (1 - D[i + 1]) + v_flag * a_dep * (1 - V[i + 1]) \
+              + f_flag * a_fac * F[i + 1] + v_flag * a_fac * V2[i+1]
         # tmp = np.swapaxes(tmp, 0, 1)
         # f_rates_tmp = np.tile(f_rates[i, :], (n_subtypes, 1, 1))
 
         # thal_arg[i + 1, :] = 1
         f_arg = np.sum(tmp * f_rates[i, :], axis=1) \
-                + thal_flag * q_thal * thal_arg[i + 1] + vip_flag * q_vip * vip_in[i]
+                + thal_flag * q_thal * thal_input[i + 1] * i_t[i] + vip_flag * q_vip * vip_in[i]
         d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
         f_rates[i + 1, :] = forward_euler(d_dt, f_rates[i, :], dt)  # update firing rates
         # f_rates[i + 1, 3, :] = vip_in[i, :n_units]
 
-    return f_rates, thal_arg, F, D
+    return f_rates, thal_input, F, D
 
 
 def unit_gen(arr, no_of_units):
@@ -139,9 +140,6 @@ def exe_wilson_cowan():
     v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]])
     # v_flag = np.zeros((4, 4))
     # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
-
-    # Thalamic tuning
-    baseline = 0.0
 
     # input stimulus
     stim_dur = 250 * 1e-3
@@ -178,7 +176,7 @@ def exe_wilson_cowan():
     # vip_in = np.tile(vip_in, (no_of_units, 1))
     # vip_in = np.swapaxes(vip_in, 0, 1)
 
-    [f_rates, thal_input, F, D] = run_sim(i_t, baseline, vip_in, q_thal, q_vip,
+    [f_rates, thal_input, F, D] = run_sim(i_t, vip_in, q_thal, q_vip,
                                           f_flag, d_flag, dt, steps, v_flag)
 
     # d_flag = np.ones((4, 4))
