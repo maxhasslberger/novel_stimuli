@@ -21,15 +21,15 @@ def heun(handle, x0, in01, dt):
     return x0 + (A + B) / 2 * dt
 
 
-def rk4(handle, x0, in012, dt):
-    A = handle(x0, in012[0])
-    xA = x0 + A * dt
-    B = handle(xA, in012[1])
-    xB = x0 + B * dt
-    C = handle(xB, in012[1])
-    xC = x0 + C * 2 * dt
-    D = handle(xC, in012[2])
-    return x0 + (A + 2*B + 2*C + D) / 6 * dt
+# def rk4(handle, x0, in012, dt):
+#     A = handle(x0, in012[0])
+#     xA = x0 + A * dt
+#     B = handle(xA, in012[1])
+#     xB = x0 + B * dt
+#     C = handle(xB, in012[1])
+#     xC = x0 + C * 2 * dt
+#     D = handle(xC, in012[2])
+#     return x0 + (A + 2*B + 2*C + D) / 6 * 2*dt
 
 
 def forward_euler_rates(dx_dt, x0, dt):

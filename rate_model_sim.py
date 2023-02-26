@@ -1,4 +1,4 @@
-from functions import f_function, cont_pulse_trials, forward_euler_rates, heun, rk4
+from functions import f_function, cont_pulse_trials, forward_euler_rates, heun
 
 import numpy as np
 # from itertools import combinations
@@ -68,20 +68,22 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
     dep_fcn = lambda arg, arg_input: (1 - arg) / tau_d1 - arg * arg_input / tau_d2
     fac_fcn = lambda arg, arg_input: - arg / tau_d1 + (1 - arg) * arg_input / tau_d2
-    wc_fcn = lambda rates_arg, D_arg, V_arg, F_arg, V2_arg, thal_arg, in_arg, vip_in_arg: \
+    wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: \
         (-rates_arg + f_function(
-            np.sum((weights + d_flag * a_dep * (1 - D_arg) + v_flag * a_dep * (1 - V_arg) + f_flag * a_fac * F_arg + v_flag * a_fac * V2_arg) *
-               rates_arg, axis=1) + thal_flag * q_thal * thal_arg * in_arg + vip_flag * q_vip * vip_in_arg - thresholds)) / tau
+            np.sum((weights + d_flag * a_dep * (1 - d_arg) + v_flag * a_dep * (1 - v_arg) + f_flag * a_fac * f_arg +
+                    v_flag * a_fac * v2_arg) *
+                   rates_arg, axis=1) + thal_flag * q_thal * thal_arg * in_arg + vip_flag * q_vip * vip_in_arg
+            - thresholds)) / tau
 
     #########################################################################################
     # Simulation
     #########################################################################################
     # deb = 0
-    for i in range(2, steps-2):
+    for i in range(1, steps-2):
         # Update thalamic input
         # dg_dt = (g_0 - thal_input[i]) / tau_d1 - thal_input[i] * i_t[i] / tau_d2
         # thal_input[i + 1] = forward_euler(dg_dt, thal_input[i], dt)
-        thal_input[i + 1] = rk4(dep_fcn, thal_input[i], i_t[i:i+3], dt)
+        thal_input[i + 1] = heun(dep_fcn, thal_input[i], i_t[i:i+3], dt)
 
         # thal_arg[i + 1] = thal_input[i + 1] * i_t[i]
 
@@ -102,10 +104,10 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         # F[i + 1] = forward_euler(dF_dt, F[i], dt)
         # V2[i + 1] = forward_euler(dV2_dt, V2[i], dt)
 
-        D[i + 1] = rk4(dep_fcn, D[i], i_t[i:i+3], dt)
-        V[i + 1] = rk4(dep_fcn, V[i], vip_in[i:i+3], dt)
-        F[i + 1] = rk4(fac_fcn, F[i], i_t[i:i+3], dt)
-        V2[i + 1] = rk4(fac_fcn, V2[i], vip_in[i:i+3], dt)
+        D[i + 1] = heun(dep_fcn, D[i], i_t[i:i+3], dt)
+        V[i + 1] = heun(dep_fcn, V[i], vip_in[i:i+3], dt)
+        F[i + 1] = heun(fac_fcn, F[i], i_t[i:i+3], dt)
+        V2[i + 1] = heun(fac_fcn, V2[i], vip_in[i:i+3], dt)
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
         #     D[i + 1] = 0
@@ -151,17 +153,18 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         # d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
 
         # i+2
-        f_rates_tmp = forward_euler_rates(C, f_rates[i-2, :], 2*dt)
+        f_rates_tmp = forward_euler_rates(C, f_rates[i-1, :], 2*dt)
         E = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
 
-        f_rates[i-1, :] = f_rates[i-2, :] + (A + 2*B + 2*C + E) / 6 * dt  # update firing rates acc. to runge-kutta-4
+        f_rates[i+1, :] = f_rates[i-1, :] + (A + 2*B + 2*C + E) / 6 * 2*dt  # update firing rates acc. to runge-kutta-4
         # Z = wc_fcn(f_rates[i, :], D[i + 1], V[i + 1], F[i + 1], V2[i + 1], thal_input[i + 1], i_t[i], vip_in[i])
         # f_rates[i+1, :] = forward_euler_rates(Z, f_rates[i, :], dt)
         # i
-        A = B
+        A = wc_fcn(f_rates[i, :], D[i], V[i], F[i], V2[i], thal_input[i], i_t[i-1], vip_in[i-1])
         # i+1
-        B = wc_fcn(f_rates[i-1, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
-        f_rates_tmp = forward_euler_rates(B, f_rates[i-1, :], dt)
+        f_rates_tmp = forward_euler_rates(A, f_rates[i, :], dt)
+        B = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
+        f_rates_tmp = forward_euler_rates(B, f_rates[i, :], dt)
         C = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
         # f_rates[i + 1, :] = forward_euler_rates(A, f_rates[i, :], dt)  # x1 heun value
 
