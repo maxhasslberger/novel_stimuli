@@ -23,7 +23,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [5, -0, 0, -20], [0, -0, -0.1, -5]])
+    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [6, -0, 0, -20], [0, -0, -0.1, -5]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -33,7 +33,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - Campagnola2022
-    stp_amp = 1
+    stp_amp = 1.5
 
     D = np.zeros((steps + 1))
     D[0] = 1.0
