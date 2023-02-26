@@ -23,7 +23,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [6, -0, 0, -20], [0, -0, -0.1, -5]])
+    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [6, -0, 0, -3], [0, -0, -0.1, -5]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -33,7 +33,9 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - Campagnola2022
-    stp_amp = 1.5
+    tau_df1 = 1500 * 1e-3  # s
+    tau_df2 = 20 * 1e-3  # s
+    stp_amp = 0.5
 
     D = np.zeros((steps + 1))
     D[0] = 1.0
@@ -52,6 +54,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # alpha = 0.65
     tau_d1 = 1500 * 1e-3  # s
     tau_d2 = 20 * 1e-3  # s
+    # tau_d2 = tau_df2  # s
     g_0 = 1
     thal_input = np.zeros((steps + 1))
     thal_arg = np.zeros((steps + 1))
@@ -74,25 +77,27 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         #     deb = i
 
         # Update depression and facilitation terms
-        dD_dt = (1 - D[i]) / tau_d1 - D[i] * i_t[i] / tau_d2
-        dV_dt = (1 - V[i]) / tau_d1 - V[i] * vip_in[i] / tau_d2
-        dF_dt = - F[i] / tau_d1 + (1 - F[i]) * i_t[i] / tau_d2
-        dV2_dt = - V2[i] / tau_d1 + (1 - V2[i]) * vip_in[i] / tau_d2
+        dD_dt = (1 - D[i]) / tau_df1 - D[i] * i_t[i] / tau_df2
+        # dD_dt = (1 - D[i]) / tau_df1 - D[i] * vip_in[i] / tau_df2
+        dV_dt = (1 - V[i]) / tau_df1 - V[i] * vip_in[i] / tau_df2
+        dF_dt = - F[i] / tau_df1 + (1 - F[i]) * i_t[i] / tau_df2
+        # dF_dt = - F[i] / tau_df1 + (1 - F[i]) * vip_in[i] / tau_df2
+        dV2_dt = - V2[i] / tau_df1 + (1 - V2[i]) * vip_in[i] / tau_df2
         D[i + 1] = forward_euler(dD_dt, D[i], dt)
         V[i + 1] = forward_euler(dV_dt, V[i], dt)
         F[i + 1] = forward_euler(dF_dt, F[i], dt)
         V2[i + 1] = forward_euler(dV2_dt, V2[i], dt)
 
-        if 0.0*steps < i < 0.5*steps:  # stp on
-            D[i + 1] = 0
-            V[i + 1] = 0
-            F[i + 1] = 1
-            V2[i + 1] = 1
-        else:
-            D[i + 1] = 1
-            V[i + 1] = 1
-            F[i + 1] = 0
-            V2[i + 1] = 0
+        # if 0.0*steps < i < 0.5*steps:  # stp on
+        #     D[i + 1] = 0
+        #     V[i + 1] = 0
+        #     F[i + 1] = 1
+        #     V2[i + 1] = 1
+        # else:
+        #     D[i + 1] = 1
+        #     V[i + 1] = 1
+        #     F[i + 1] = 0
+        #     V2[i + 1] = 0
 
         # # Reshaping for multiple unit processing
         # F_tmp = np.tile(F[i + 1, :], (n_subtypes, n_subtypes, 1))
@@ -182,9 +187,10 @@ def exe_wilson_cowan():
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
     stim_dur2 = 750 * 1e-3
     # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
-    vip_in = vip_in + 2.0 * cont_pulse_trials(1, 0.525, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_amp_2 = 2
+    vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.525, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
     vip_in = vip_in + cont_pulse_trials(0, 0.6 + stim_dur/10, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
-    vip_in = vip_in + cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
     # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur, 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
 
@@ -203,7 +209,7 @@ def exe_wilson_cowan():
     # [f_rates2, _, _, _] = run_sim(no_of_units, i_t, baseline, vip_in, f_flag, d_flag, dt, steps)
 
     time = np.arange(0, t_ges + dt, dt)
-    scatter = ['o', '^', '.', '--']
+    scatter = ['o', '^', '.', '-']
 
     for i in range(f_rates.shape[1]):
         plt.plot(time, f_rates[:, i], scatter[i])
