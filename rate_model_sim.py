@@ -1,4 +1,4 @@
-from functions import f_function, forward_euler, cont_pulse_trials, forward_euler2, heun, rk4
+from functions import f_function, cont_pulse_trials, forward_euler2, rk4
 
 import numpy as np
 # from itertools import combinations
