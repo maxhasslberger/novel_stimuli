@@ -154,7 +154,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         f_rates_tmp = forward_euler_rates(C, f_rates[i-2, :], 2*dt)
         E = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
 
-        f_rates[i, :] = f_rates[i-2, :] + (A + 2*B + 2*C + E) / 6 * dt  # update firing rates acc. to runge-kutta-4
+        f_rates[i-1, :] = f_rates[i-2, :] + (A + 2*B + 2*C + E) / 6 * dt  # update firing rates acc. to runge-kutta-4
         # Z = wc_fcn(f_rates[i, :], D[i + 1], V[i + 1], F[i + 1], V2[i + 1], thal_input[i + 1], i_t[i], vip_in[i])
         # f_rates[i+1, :] = forward_euler_rates(Z, f_rates[i, :], dt)
         # i
