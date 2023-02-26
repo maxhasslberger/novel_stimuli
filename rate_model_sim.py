@@ -11,7 +11,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
 
     # neuron constants -> [exc, pv, sst, vip]
-    thresholds = np.array([-0.1, -0.0, 0.0, 0.0])  # -> baseline
+    thresholds = np.array([-0.1, -0.1, 0.0, 0.0])  # -> baseline
     tau = np.array([10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 10 * 1e-3])  # s
     # i_opt = [0.0, -0.0, -0.0, 0.0]  # [0.0, -2.0, -1.0, 0.0]
 
@@ -54,7 +54,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # alpha = 0.65
     tau_d1 = 1500 * 1e-3  # s
     tau_d2 = 20 * 1e-3  # s
-    # tau_d2 = tau_df2  # s
+    # tau_df2 = tau_d2  # s
     g_0 = 1
     thal_input = np.zeros((steps + 1))
     thal_arg = np.zeros((steps + 1))
@@ -176,10 +176,10 @@ def exe_wilson_cowan():
     # i_t = np.ones(steps)
 
     # Higher order input
-    stim_dur = 20 * 1e-3
+    stim_dur = 10 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
-    # off_frac = (inter_stim_dur + stim_dur * 2) / t_ges
+    # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
     # trial_pulses = trial_pulses - 1
     q_vip = 0.5
     # q_vip = 1
