@@ -14,7 +14,8 @@ def forward_euler(dx_dt, x0, dt):
     return x0 + dx_dt * dt
 
 
-def cont_pulse_trials(mode, off_steps, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt):
+def cont_pulse_trials(mode, off_dur, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt):
+    off_steps = int(off_dur*steps)
     trial_dur = (stim_dur + inter_stim_dur) * trial_pulses - inter_stim_dur
     trial_steps = trial_dur / dt
     inter_trial_steps = inter_trial_dur / dt
@@ -31,10 +32,13 @@ def cont_rect_pulses(mode, stim_dur, inter_stim_dur, steps, dt):
     stim_steps = int(stim_dur / dt)
     inter_stim_steps = int(inter_stim_dur / dt)
     pulse_times = np.arange(0, steps-1, stim_steps + inter_stim_steps)
-    if not mode:
+
+    if mode == 0:
         signal = pulse_train(np.arange(steps), pulse_times, rect(stim_steps))
-    else:
+    elif mode == 1:
         signal = pulse_train(np.arange(steps), pulse_times, ramp(steps))
+    else:
+        signal = pulse_train(np.arange(steps), pulse_times, ramp_inv(steps))
     return signal
 
 
@@ -44,6 +48,10 @@ def rect(T):
 
 def ramp(a):
     return lambda t: t / a  # if (0 <= t < T) else 0
+
+
+def ramp_inv(a):
+    return lambda t: 1 - t / a  # if (0 <= t < T) else 0
 
 
 def pulse_train(t, pulse_times, fun):

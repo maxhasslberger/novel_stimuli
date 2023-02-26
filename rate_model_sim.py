@@ -11,7 +11,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
 
     # neuron constants -> [exc, pv, sst, vip]
-    thresholds = np.array([-0.1, -0.1, 0.0, 0.0])  # -> baseline
+    thresholds = np.array([-0.1, -0.0, 0.0, 0.0])  # -> baseline
     tau = np.array([10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 10 * 1e-3])  # s
     # i_opt = [0.0, -0.0, -0.0, 0.0]  # [0.0, -2.0, -1.0, 0.0]
 
@@ -21,9 +21,9 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # w_star = np.array([0.667, 1.25, 0.125, 0.0])  # only with exc. pre synapses, Park2020
     # w_star = w_star[:, np.newaxis]
 
-    w_amp = 1.0
+    w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -2, -1, -0.0], [1, -2, -2, -0.0], [6, -0, -0, -10], [0, -0.0, -0.1, -5]])
+    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [5, -0, 0, -20], [0, -0, -0.1, -5]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -33,14 +33,14 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - Campagnola2022
-    stp_amp = 0.25
+    stp_amp = 1
 
     D = np.zeros((steps + 1))
     D[0] = 1.0
     V = np.zeros((steps + 1))
     V[0] = 1.0
     # a_dep = np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
-    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0, 0, 0], [-0, 0, 0, 0]])
+    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0.35, 0.18, 0], [-0, 0.0, 0, 0]])
 
     F = np.zeros((steps + 1))
     V2 = np.zeros((steps + 1))
@@ -82,6 +82,17 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         V[i + 1] = forward_euler(dV_dt, V[i], dt)
         F[i + 1] = forward_euler(dF_dt, F[i], dt)
         V2[i + 1] = forward_euler(dV2_dt, V2[i], dt)
+
+        if 0.0*steps < i < 0.5*steps:  # stp on
+            D[i + 1] = 0
+            V[i + 1] = 0
+            F[i + 1] = 1
+            V2[i + 1] = 1
+        else:
+            D[i + 1] = 1
+            V[i + 1] = 1
+            F[i + 1] = 0
+            V2[i + 1] = 0
 
         # # Reshaping for multiple unit processing
         # F_tmp = np.tile(F[i + 1, :], (n_subtypes, n_subtypes, 1))
@@ -163,13 +174,17 @@ def exe_wilson_cowan():
     stim_dur = 20 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
+    # off_frac = (inter_stim_dur + stim_dur * 2) / t_ges
+    # trial_pulses = trial_pulses - 1
     q_vip = 0.5
     # q_vip = 1
     vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    stim_dur = 750 * 1e-3
-    vip_in = vip_in + 2.0 * cont_pulse_trials(1, int(0.525*steps), stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
-    # vip_in[84000:84300] = 1
+    stim_dur2 = 750 * 1e-3
+    # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
+    vip_in = vip_in + 2.0 * cont_pulse_trials(1, 0.525, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_in = vip_in + cont_pulse_trials(0, 0.6 + stim_dur/10, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_in = vip_in + cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
     # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur, 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
 
@@ -193,7 +208,7 @@ def exe_wilson_cowan():
     for i in range(f_rates.shape[1]):
         plt.plot(time, f_rates[:, i], scatter[i])
 
-    plt.legend(['exc', 'pv', 'sst', 'vip'])
+    #plt.legend(['exc', 'pv', 'sst', 'vip'])
     plt.title("Firing rates Exp1")
     plt.xlabel("t / s")
 
@@ -212,7 +227,7 @@ def exe_wilson_cowan():
     plt.plot(time, D)
     plt.plot(time, thal_input)
 
-    plt.legend(['F', 'D', 'Thalamic input'])
+    #plt.legend(['F', 'D', 'Thalamic input'])
     plt.title("Short-term plasticity")
     plt.xlabel("t / s")
 
@@ -229,7 +244,7 @@ def exe_wilson_cowan():
     plt.plot(time, q_thal * i_t)
     plt.plot(time, q_vip * vip_in)
 
-    plt.legend(['Stimulus', 'Higher Order'])
+    #plt.legend(['Stimulus', 'Higher Order'])
     plt.title("Input signals")
     plt.xlabel("t / s")
 
