@@ -10,8 +10,30 @@ def f_function(x):
     return f
 
 
-def forward_euler(dx_dt, x0, dt):
+def forward_euler2(dx_dt, x0, dt):
     return x0 + dx_dt * dt
+
+
+def forward_euler(handle, x0, in0, dt):
+    return x0 + handle(x0, in0) * dt
+
+
+def heun(handle, x0, in01, dt):
+    A = handle(x0, in01[0])
+    x1 = x0 + A * dt
+    B = handle(x1, in01[1])
+    return x0 + (A + B) / 2 * dt
+
+
+def rk4(handle, x0, in012, dt):
+    A = handle(x0, in012[0])
+    xA = x0 + A * dt
+    B = handle(xA, in012[1])
+    xB = x0 + B * dt
+    C = handle(xB, in012[1])
+    xC = x0 + C * 2 * dt
+    D = handle(xC, in012[2])
+    return x0 + (A + 2*B + 2*C + D) / 6 * dt
 
 
 def cont_pulse_trials(mode, off_dur, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt):
