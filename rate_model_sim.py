@@ -1,4 +1,4 @@
-from functions import f_function, forward_euler, cont_pulse_trials, forward_euler2, heun, rk4
+from functions import f_function, cont_pulse_trials, forward_euler_rates, heun, rk4
 
 import numpy as np
 # from itertools import combinations
@@ -33,8 +33,8 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # f_rates[0, :] = np.random.rand(n_subtypes)
 
     # Depression and Facilitation constants - Campagnola2022
-    tau_df1 = 1500 * 1e-3  # s
-    tau_df2 = 20 * 1e-3  # s
+    # tau_df1 = 1500 * 1e-3  # s
+    # tau_df2 = 20 * 1e-3  # s
     stp_amp = 0.5
 
     D = np.zeros((steps + 1))
@@ -62,9 +62,16 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # thal_arg[0] = g_0
 
     # model functions
-    dep_fcn = lambda arg, arg_input: (1 - arg) / tau_df1 - arg * arg_input / tau_df2
-    fac_fcn = lambda arg, arg_input: - arg / tau_df1 + (1 - arg) * arg_input / tau_df2
     A = 0
+    B = 0
+    C = 0
+
+    dep_fcn = lambda arg, arg_input: (1 - arg) / tau_d1 - arg * arg_input / tau_d2
+    fac_fcn = lambda arg, arg_input: - arg / tau_d1 + (1 - arg) * arg_input / tau_d2
+    wc_fcn = lambda rates_arg, D_arg, V_arg, F_arg, V2_arg, thal_arg, in_arg, vip_in_arg: \
+        (-rates_arg + f_function(
+            np.sum((weights + d_flag * a_dep * (1 - D_arg) + v_flag * a_dep * (1 - V_arg) + f_flag * a_fac * F_arg + v_flag * a_fac * V2_arg) *
+               rates_arg, axis=1) + thal_flag * q_thal * thal_arg * in_arg + vip_flag * q_vip * vip_in_arg - thresholds)) / tau
 
     #########################################################################################
     # Simulation
@@ -75,7 +82,6 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         # dg_dt = (g_0 - thal_input[i]) / tau_d1 - thal_input[i] * i_t[i] / tau_d2
         # thal_input[i + 1] = forward_euler(dg_dt, thal_input[i], dt)
         thal_input[i + 1] = rk4(dep_fcn, thal_input[i], i_t[i:i+3], dt)
-
 
         # thal_arg[i + 1] = thal_input[i + 1] * i_t[i]
 
@@ -134,24 +140,30 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         #     cross_thal = np.zeros((n_subtypes, n_units))
 
         # Update Wilson-Cowan model
-        tmp = weights + d_flag * a_dep * (1 - D[i + 1]) + v_flag * a_dep * (1 - V[i + 1]) \
-              + f_flag * a_fac * F[i + 1] + v_flag * a_fac * V2[i+1]
-        # tmp = np.swapaxes(tmp, 0, 1)
-        # f_rates_tmp = np.tile(f_rates[i, :], (n_subtypes, 1, 1))
+        # tmp = weights + d_flag * a_dep * (1 - D[i + 1]) + v_flag * a_dep * (1 - V[i + 1]) \
+        #       + f_flag * a_fac * F[i + 1] + v_flag * a_fac * V2[i+1]
+        # # tmp = np.swapaxes(tmp, 0, 1)
+        # # f_rates_tmp = np.tile(f_rates[i, :], (n_subtypes, 1, 1))
+        #
+        # # thal_arg[i + 1, :] = 1
+        # f_arg = np.sum(tmp * f_rates[i, :], axis=1) \
+        #         + thal_flag * q_thal * thal_input[i + 1] * i_t[i] + vip_flag * q_vip * vip_in[i]
+        # d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
 
-        # thal_arg[i + 1, :] = 1
-        f_arg = np.sum(tmp * f_rates[i, :], axis=1) \
-                + thal_flag * q_thal * thal_input[i + 1] * i_t[i] + vip_flag * q_vip * vip_in[i]
-        d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
+        # i+2
+        f_rates_tmp = forward_euler_rates(C, f_rates[i-2, :], 2*dt)
+        E = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
 
-        B = d_dt
-        f_rates[i, :] = f_rates[i-1, :] + (A + B) / 2 * dt  # update firing rates acc. to heun
-        # f_rates[i, :] = f_rates[i-2, :] + (A + 2*B + 2*C + E) / 6 * dt  # update firing rates acc. to heun
-        # f_rates_tmp =
+        f_rates[i, :] = f_rates[i-2, :] + (A + 2*B + 2*C + E) / 6 * dt  # update firing rates acc. to runge-kutta-4
+        # Z = wc_fcn(f_rates[i, :], D[i + 1], V[i + 1], F[i + 1], V2[i + 1], thal_input[i + 1], i_t[i], vip_in[i])
+        # f_rates[i+1, :] = forward_euler_rates(Z, f_rates[i, :], dt)
+        # i
         A = B
-        # B = d_dt_tmp
-        # C = D
-        f_rates[i + 1, :] = forward_euler2(A, f_rates[i, :], dt)  # x1 heun value
+        # i+1
+        B = wc_fcn(f_rates[i-1, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
+        f_rates_tmp = forward_euler_rates(B, f_rates[i-1, :], dt)
+        C = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
+        # f_rates[i + 1, :] = forward_euler_rates(A, f_rates[i, :], dt)  # x1 heun value
 
         # f_rates[i + 1, 3, :] = vip_in[i, :n_units]
 
@@ -239,6 +251,7 @@ def exe_wilson_cowan():
     #plt.legend(['exc', 'pv', 'sst', 'vip'])
     plt.title("Firing rates Exp1")
     plt.xlabel("t / s")
+    # plt.ylim(0, 1)
 
     # plt.figure()
     #
