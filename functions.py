@@ -10,7 +10,7 @@ def f_function(x):
     return f
 
 
-def forward_euler2(dx_dt, x0, dt):
+def forward_euler_rates(dx_dt, x0, dt):
     return x0 + dx_dt * dt
 
 
