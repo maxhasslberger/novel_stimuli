@@ -1,4 +1,4 @@
-from functions import f_function, cont_pulse_trials, forward_euler_rates, rk4, heun
+from functions import f_function, cont_pulse_trials, forward_euler_rates, rk4, heun, forward_euler
 
 import numpy as np
 # from itertools import combinations
@@ -11,7 +11,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
 
     # neuron constants -> [exc, pv, sst, vip]
-    thresholds = np.array([-0.1, -0.1, 0.0, 0.0])  # -> baseline
+    thresholds = np.array([-0.1, -0.1, 0., 0.0])  # -> baseline
     tau = np.array([10 * 1e-3, 10 * 1e-3, 10 * 1e-3, 10 * 1e-3])  # s
     # i_opt = [0.0, -0.0, -0.0, 0.0]  # [0.0, -2.0, -1.0, 0.0]
 
@@ -57,12 +57,14 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     # tau_df2 = tau_d2  # s
     g_0 = 1
     thal_input = np.zeros((steps + 1))
+    # thal_in = np.zeros((steps + 1))
     # thal_arg = np.zeros((steps + 1))
     thal_input[0:2] = g_0
+    # thal_in[0:2] = g_0
     # thal_arg[0] = g_0
+    baseline = 0.
 
     # model functions
-    A = 0
     dep_fcn = lambda arg, arg_input: (1 - arg) / tau_d1 - arg * arg_input / tau_d2
     fac_fcn = lambda arg, arg_input: - arg / tau_d1 + (1 - arg) * arg_input / tau_d2
     wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: \
@@ -70,17 +72,24 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
             np.sum((weights + d_flag * a_dep * (1 - d_arg) + v_flag * a_dep * (1 - v_arg) + f_flag * a_fac * f_arg +
                     v_flag * a_fac * v2_arg) *
                    rates_arg, axis=1) + thal_flag * q_thal * thal_arg * in_arg + vip_flag * q_vip * vip_in_arg
-            - thresholds)) / tau
+            - thresholds) + baseline) / tau
+    # wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: \
+    #     (-rates_arg + f_function(
+    #         (np.sum(weights*rates_arg, axis=1) + thal_flag * q_thal * thal_arg * in_arg)
+    #         - thresholds)) / tau
+    # wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: (1 - rates_arg) / tau_d1 - \
+    # rates_arg * in_arg / tau_d2
 
     #########################################################################################
     # Simulation
     #########################################################################################
     # deb = 0
-    for i in range(1, steps-1):
+    for i in range(0, steps):
         # Update thalamic input
         # dg_dt = (g_0 - thal_input[i]) / tau_d1 - thal_input[i] * i_t[i] / tau_d2
         # thal_input[i + 1] = forward_euler(dg_dt, thal_input[i], dt)
-        thal_input[i + 1] = heun(dep_fcn, thal_input[i], i_t[i:i+2], dt)
+        thal_input[i + 1] = forward_euler(dep_fcn, thal_input[i], i_t[i], dt)
+        # thal_in[i + 1] = thal_input[i + 1] * i_t[i] * (1 - baseline) + baseline
 
 
         # thal_arg[i + 1] = thal_input[i + 1] * i_t[i]
@@ -102,10 +111,10 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         # F[i + 1] = forward_euler(dF_dt, F[i], dt)
         # V2[i + 1] = forward_euler(dV2_dt, V2[i], dt)
 
-        D[i + 1] = heun(dep_fcn, D[i], i_t[i:i+2], dt)
-        V[i + 1] = heun(dep_fcn, V[i], vip_in[i:i+2], dt)
-        F[i + 1] = heun(fac_fcn, F[i], i_t[i:i+2], dt)
-        V2[i + 1] = heun(fac_fcn, V2[i], vip_in[i:i+2], dt)
+        D[i + 1] = forward_euler(dep_fcn, D[i], i_t[i], dt)
+        V[i + 1] = forward_euler(dep_fcn, V[i], vip_in[i], dt)
+        F[i + 1] = forward_euler(fac_fcn, F[i], i_t[i], dt)
+        V2[i + 1] = forward_euler(fac_fcn, V2[i], vip_in[i], dt)
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
         #     D[i + 1] = 0
@@ -118,27 +127,6 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         #     F[i + 1] = 0
         #     V2[i + 1] = 0
 
-        # # Reshaping for multiple unit processing
-        # F_tmp = np.tile(F[i + 1, :], (n_subtypes, n_subtypes, 1))
-        # F_tmp = np.swapaxes(F_tmp, 0, 2)
-        # D_tmp = np.tile(D[i + 1, :], (n_subtypes, n_subtypes, 1))
-        # D_tmp = np.swapaxes(D_tmp, 0, 2)
-        #
-        # if n_units > 1:
-        #     # Lateral inter-unit excitatory connections
-        #     exc_combos = list(combinations(f_rates[i, 0, :], n_units - 1))
-        #     cross_exc_rates = np.sum(exc_combos, axis=1)
-        #     cross_exc_rates = np.flip(cross_exc_rates)  # -> nth index without contribution of unit n
-        #     cross_exc_in = w_star * cross_exc_rates / (n_units - 1)
-        #
-        #     # Lateral inter-unit thalamic input
-        #     thal_combos = list(combinations(thal_arg[i + 1, :] * alpha, n_units - 1))
-        #     cross_thal = np.sum(thal_combos, axis=1)
-        #     cross_thal = np.flip(cross_thal)
-        # else:
-        #     cross_exc_in = np.zeros((n_subtypes, n_units))
-        #     cross_thal = np.zeros((n_subtypes, n_units))
-
         # Update Wilson-Cowan model
         # tmp = weights + d_flag * a_dep * (1 - D[i + 1]) + v_flag * a_dep * (1 - V[i + 1]) \
         #       + f_flag * a_fac * F[i + 1] + v_flag * a_fac * V2[i+1]
@@ -150,10 +138,8 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         #         + thal_flag * q_thal * thal_input[i + 1] * i_t[i] + vip_flag * q_vip * vip_in[i]
         # d_dt = (-f_rates[i, :] + f_function(f_arg - thresholds)) / tau
 
-        A = wc_fcn(f_rates[i, :], D[i], V[i], F[i], V2[i], thal_input[i], i_t[i-1], vip_in[i-1])
-        f_rates_tmp = forward_euler_rates(A, f_rates[i, :], dt)  # x1 heun value
-        B = wc_fcn(f_rates_tmp, D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
-        f_rates[i+1, :] = f_rates[i, :] + (A + B) / 2 * dt  # update firing rates acc. to heun
+        d_dt = wc_fcn(f_rates[i, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
+        f_rates[i+1, :] = forward_euler_rates(d_dt, f_rates[i, :], dt)
 
     return f_rates, thal_input, F, D
 
@@ -166,18 +152,20 @@ def unit_gen(arr, no_of_units):
 
 def exe_wilson_cowan():
     for i in range(1, 3):
-        dt = 0.025 * 1e-3 * i  # s
+        if i == 2:
+            break
+        dt = 0.05 * 1e-3 / i  # s
         t_ges = 10000 * 1e-3  # s
         steps = int(np.ceil(t_ges / dt))
 
         # Switch on/off arbitrary no of facilitation and depression terms
         # d_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0]])
         d_flag = np.array([[1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0]])
-        # d_flag = np.zeros((4, 4))
+        d_flag = np.zeros((4, 4))
         # d_flag = np.ones((4, 4))
         f_flag = d_flag
         v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]])
-        # v_flag = np.zeros((4, 4))
+        v_flag = np.zeros((4, 4))
         # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
         # input stimulus
@@ -190,7 +178,7 @@ def exe_wilson_cowan():
         # inter_stim_dur = 600 * 1e-3
         # inter_trial_dur = 1400 * 1e-3
         trial_pulses = 7
-        q_thal = 0.1
+        q_thal = 5
         i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
         # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
         # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
@@ -204,7 +192,7 @@ def exe_wilson_cowan():
         inter_trial_dur = 1500 * 1e-3 - stim_dur
         # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
         # trial_pulses = trial_pulses - 1
-        q_vip = 0.5
+        q_vip = 5
         # q_vip = 1
         vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
         # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
@@ -242,6 +230,18 @@ def exe_wilson_cowan():
         #plt.legend(['exc', 'pv', 'sst', 'vip'])
         plt.title("Firing rates Exp1")
         plt.xlabel("t / s")
+        # plt.ylim(0, 0.6)
+
+        plt.figure()
+
+        for i in range(f_rates.shape[1]):
+            plt.plot(time, f_rates[:, i], scatter[i])
+
+        #plt.legend(['exc', 'pv', 'sst', 'vip'])
+        plt.title("Firing rates Exp1")
+        plt.xlabel("t / s")
+        plt.ylim(0, 0.6)
+        plt.xlim(0, 0.5)
 
         # plt.figure()
         #
@@ -262,21 +262,21 @@ def exe_wilson_cowan():
         plt.title("Short-term plasticity")
         plt.xlabel("t / s")
 
-    # # plt.figure()
-    # #
-    # # plt.plot(time, thal_input)
-    # # plt.title("Thalamic input")
-    # # plt.xlabel("t / s")
-    #
     # plt.figure()
     #
-    # time = np.arange(0, t_ges, dt)
-    #
-    # plt.plot(time, q_thal * i_t)
-    # plt.plot(time, q_vip * vip_in)
-    #
-    # #plt.legend(['Stimulus', 'Higher Order'])
-    # plt.title("Input signals")
+    # plt.plot(time, thal_input)
+    # plt.title("Thalamic input")
     # plt.xlabel("t / s")
+
+    plt.figure()
+
+    time = np.arange(0, t_ges, dt)
+
+    plt.plot(time, q_thal * i_t)
+    plt.plot(time, q_vip * vip_in)
+
+    #plt.legend(['Stimulus', 'Higher Order'])
+    plt.title("Input signals")
+    plt.xlabel("t / s")
 
     plt.show()
