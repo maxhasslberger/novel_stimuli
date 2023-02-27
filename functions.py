@@ -2,7 +2,7 @@ import numpy as np
 
 
 def f_function(x):
-    r = 3.0
+    r = 1.0
     f = np.zeros(x.shape)
 
     f[x > 0] = r * x[x > 0]
