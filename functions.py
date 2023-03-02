@@ -2,7 +2,7 @@ import numpy as np
 
 
 def f_function(x):
-    r = 1.0
+    r = 1.5
     f = np.zeros(x.shape)
 
     f[x > 0] = r * x[x > 0]
@@ -14,8 +14,8 @@ def forward_euler_rates(dx_dt, x0, dt):
     return x0 + dx_dt * dt
 
 
-def forward_euler(handle, x0, in0, dt):
-    return x0 + handle(x0, in0) * dt
+def forward_euler(handle, tau1, tau2, x0, in0, dt):
+    return x0 + handle(x0, in0, tau1, tau2) * dt
 
 
 def heun(handle, x0, in01, dt):
