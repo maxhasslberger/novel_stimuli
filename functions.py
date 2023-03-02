@@ -2,10 +2,10 @@ import numpy as np
 
 
 def f_function(x):
-    r = 1.5
+    r = np.array([1.5, 1.5, 1.5, 1.5])
     f = np.zeros(x.shape)
 
-    f[x > 0] = r * x[x > 0]
+    f[x > 0] = r[x > 0] * x[x > 0]
     f[x > 1/r] = 1.0
     return f
 

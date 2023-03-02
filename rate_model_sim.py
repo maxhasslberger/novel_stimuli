@@ -23,7 +23,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -4, -1, -0], [1, -2, -2, -0], [5, -2, -0, -2], [0, -0, -0.1, -3]])
+    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [6, -0, -0, -2], [0, -0, -0.1, -3]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -41,12 +41,12 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     D[0:2] = 1.0
     V = np.zeros((steps + 1))
     V[0:2] = 1.0
-    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0.35, 0.0, 0.9], [-0, 0.0, 0, 0]])
+    a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0.35, 0.0, 0], [-0, 0.0, 0, 0]])
     # a_dep = np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
 
     F = np.zeros((steps + 1))
     V2 = np.zeros((steps + 1))
-    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.0], [0.0, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.9], [0.0, -0, -0.28, -0.04]])
     # a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
 
     v_flag = v_flag * 15
@@ -119,14 +119,14 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
         if 0.0*steps < i < 0.5*steps:  # stp on
             #D[i + 1] = 0
-            V[i + 1] = 0
+            V[i + 1] = 0.5
             #F[i + 1] = 1
-            V2[i + 1] = 1
+            V2[i + 1] = 0.5
         else:
             #D[i + 1] = 0.5
-            V[i + 1] = 1
+            V[i + 1] = 0
             #F[i + 1] = 0.5
-            V2[i + 1] = 0
+            V2[i + 1] = 1
 
         # Update Wilson-Cowan model
         # if i*dt > 5.9:
@@ -143,7 +143,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         d_dt = wc_fcn(f_rates[i, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
         f_rates[i+1, :] = forward_euler_rates(d_dt, f_rates[i, :], dt)
 
-    return f_rates, thal_input, F, D
+    return f_rates, thal_input, V2, V
 
 
 def unit_gen(arr, no_of_units):
@@ -201,7 +201,7 @@ def exe_wilson_cowan():
         stim_dur2 = 750 * 1e-3
         # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
         vip_amp_2 = 2
-        rev_fac = 1
+        rev_fac = 2
         vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.525, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
         vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(2, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
         vip_in = vip_in + cont_pulse_trials(0, 0.6 + stim_dur/10, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
