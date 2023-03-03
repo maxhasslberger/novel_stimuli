@@ -2,7 +2,7 @@ import numpy as np
 
 
 def f_function(x):
-    r = np.array([1.5, 1.5, 1.5, 1.5])
+    r = np.array([1.5, .5, 2.5, 1.5])
     f = np.zeros(x.shape)
 
     f[x > 0] = r[x > 0] * x[x > 0]

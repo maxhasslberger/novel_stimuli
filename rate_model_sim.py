@@ -23,7 +23,7 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -2, -1, -0], [1, -2, -2, -0], [6, -0, -0, -2], [0, -0, -0.1, -3]])
+    weights = w_amp * np.array([[1.1, -2.7, -1, -0], [1, -2, -2, -0], [6, -0, -0, -3], [0, -0, -0.1, -3]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -117,16 +117,16 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         F[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, F[i], i_t[i], dt)
         V2[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, V2[i], vip_in[i], dt)
 
-        if 0.0*steps < i < 0.5*steps:  # stp on
-            #D[i + 1] = 0
-            V[i + 1] = 0.5
-            #F[i + 1] = 1
-            V2[i + 1] = 0.5
-        else:
-            #D[i + 1] = 0.5
-            V[i + 1] = 0
-            #F[i + 1] = 0.5
-            V2[i + 1] = 1
+        # if 0.0*steps < i < 0.5*steps:  # stp on
+        #     #D[i + 1] = 0
+        #     V[i + 1] = 0.5
+        #     #F[i + 1] = 1
+        #     V2[i + 1] = 0.5
+        # else:
+        #     #D[i + 1] = 0.5
+        #     V[i + 1] = 0
+        #     #F[i + 1] = 0.5
+        #     V2[i + 1] = 1
 
         # Update Wilson-Cowan model
         # if i*dt > 5.9:
@@ -156,7 +156,8 @@ def exe_wilson_cowan():
     for dt_i in range(1, 3):
         if dt_i == 2:
             break
-        dt = 0.05 * 1e-3 / dt_i  # s
+        # dt = 0.05 * 1e-3 / dt_i  # s
+        dt = 0.05 * 1e-3  # s
         t_ges = 10000 * 1e-3  # s
         steps = int(np.ceil(t_ges / dt))
 
@@ -194,17 +195,19 @@ def exe_wilson_cowan():
         inter_trial_dur = 1500 * 1e-3 - stim_dur
         # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
         # trial_pulses = trial_pulses - 1
-        q_vip = 0.5
+        q_vip = 0.25
         # q_vip = 1
         vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
         # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
         stim_dur2 = 750 * 1e-3
         # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
-        vip_amp_2 = 2
-        rev_fac = 2
-        vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.525, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
-        vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(2, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
-        vip_in = vip_in + cont_pulse_trials(0, 0.6 + stim_dur/10, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
+        vip_amp_2 = 1 / q_vip
+        vip_decay_amp = vip_amp_2 * 0.75
+        rev_fac = 1.5
+        vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.6 - stim_dur2/t_ges, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
+        vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+        vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
+        vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
         # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
         # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
         # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
