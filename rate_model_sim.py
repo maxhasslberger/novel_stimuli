@@ -160,7 +160,11 @@ def exe_wilson_cowan():
         if dt_i == 2:
             break
 
+        # Mode config
         mode = 1
+
+        mode_str = ["Image Omission - Familiar", "Image Change - Novel"]
+        xlims = [[4.4, 6.3], [3.7, 4.8]]
 
         # dt = 0.05 * 1e-3 / dt_i  # s
         dt = 0.05 * 1e-3  # s
@@ -203,65 +207,58 @@ def exe_wilson_cowan():
 
         [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
-        plt.figure()
-
-        time = np.arange(0, t_ges + dt, dt)
-        scatter = ['o', '^', '.', '-']
+        # Presentation plots
+        time = np.arange(0, t_ges, dt)
+        population = ["Excitatory", "PV", "SST", "VIP"]
 
         for i in range(f_rates.shape[1]):
-            plt.plot(time, f_rates[:, i], scatter[i])
+            plt.figure()
+            scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+            plt.plot(time, i_t * q_thal * scale_fac)
+            plt.plot(time, vip_in * q_vip * scale_fac)
+            plt.plot(time, f_rates[:-1, i])
 
-        plt.legend(['exc', 'pv', 'sst', 'vip'])
-        plt.title("Firing rates Exp1")
-        plt.xlabel("t / s")
-        # plt.ylim(0, 0.6)
+            plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+                        "Top-down input (x" + str(round(scale_fac, 2)) + ")",
+                        population[i] + " Activity (normalized)"])
+            plt.title(mode_str[mode])
+            plt.xlabel("t / s")
+            plt.xlim(xlims[mode])
 
+        # # Std plots
         # plt.figure()
+        #
+        # time = np.arange(0, t_ges + dt, dt)
+        # scatter = ['o', '^', '.', '-']
         #
         # for i in range(f_rates.shape[1]):
         #     plt.plot(time, f_rates[:, i], scatter[i])
         #
-        # #plt.legend(['exc', 'pv', 'sst', 'vip'])
+        # plt.legend(['exc', 'pv', 'sst', 'vip'])
         # plt.title("Firing rates Exp1")
         # plt.xlabel("t / s")
-        # plt.ylim(0, 0.6)
-        # plt.xlim(0, 0.5)
-
+        # # plt.ylim(0, 0.6)
+        #
         # plt.figure()
         #
-        # plt.plot(time, f_rates[:, 0, 0], scatter[0])
-        # plt.plot(time, f_rates2[:, 0, 0], scatter[2])
-        #
-        # plt.legend(['Exp 1', 'Exp 2'])
-        # plt.title("Comp. Firing rates")
-        # plt.xlabel("t / s")
-
-        plt.figure()
-
-        plt.plot(time, F)
-        plt.plot(time, D)
-        plt.plot(time, thal_input)
-
-        plt.legend(['F', 'D', 'Thalamic input'])
-        plt.title("Short-term plasticity")
-        plt.xlabel("t / s")
-
-        # plt.figure()
-        #
+        # plt.plot(time, F)
+        # plt.plot(time, D)
         # plt.plot(time, thal_input)
-        # plt.title("Thalamic input")
+        #
+        # plt.legend(['F', 'D', 'Thalamic input'])
+        # plt.title("Short-term plasticity")
         # plt.xlabel("t / s")
-
-        plt.figure()
-
-        time = np.arange(0, t_ges, dt)
-
-        plt.plot(time, q_thal * i_t)
-        plt.plot(time, q_vip * vip_in)
-
-        plt.legend(['Stimulus', 'Higher Order'])
-        plt.title("Input signals")
-        plt.xlabel("t / s")
+        #
+        # plt.figure()
+        #
+        # time = np.arange(0, t_ges, dt)
+        #
+        # plt.plot(time, q_thal * i_t)
+        # plt.plot(time, q_vip * vip_in)
+        #
+        # plt.legend(['Stimulus', 'Higher Order'])
+        # plt.title("Input signals")
+        # plt.xlabel("t / s")
 
     plt.show()
 
