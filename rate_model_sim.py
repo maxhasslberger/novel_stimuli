@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
+def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
     # Init
     ############################################################
@@ -117,6 +117,9 @@ def run_sim(i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
         F[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, F[i], i_t[i], dt)
         V2[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, V2[i], vip_in[i], dt)
 
+        if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and mode == 1:  # novel stim following
+            thal_input[i + 1] = 0.45
+
         # if 0.0*steps < i < 0.5*steps:  # stp on
         #     #D[i + 1] = 0
         #     V[i + 1] = 0.5
@@ -156,6 +159,9 @@ def exe_wilson_cowan():
     for dt_i in range(1, 3):
         if dt_i == 2:
             break
+
+        mode = 1
+
         # dt = 0.05 * 1e-3 / dt_i  # s
         dt = 0.05 * 1e-3  # s
         t_ges = 10000 * 1e-3  # s
@@ -171,7 +177,7 @@ def exe_wilson_cowan():
         # v_flag = np.zeros((4, 4))
         # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-        # input stimulus
+        # input stimulus (Bottom up)
         stim_dur = 250 * 1e-3
         inter_stim_dur = 500 * 1e-3
         # inter_trial_dur = 2400 * 1e-3
@@ -189,42 +195,13 @@ def exe_wilson_cowan():
         # i_t = np.swapaxes(i_t, 0, 1)
         # i_t = np.ones(steps)
 
-        # Higher order input
-        stim_dur = 20 * 1e-3
-        inter_stim_dur = 750 * 1e-3 - stim_dur
-        inter_trial_dur = 1500 * 1e-3 - stim_dur
-        # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
-        # trial_pulses = trial_pulses - 1
-        q_vip = 0.25
-        # q_vip = 1
-        vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-        # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-        stim_dur2 = 750 * 1e-3
-        # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
-        vip_amp_2 = 1 / q_vip
-        vip_decay_amp = vip_amp_2 * 0.5
-        rev_fac = 1.5
-        vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.6 - stim_dur2/t_ges, stim_dur2, inter_stim_dur, t_ges, 1, steps, dt)
-        vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
-        vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
-        vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
-        # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
-        # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
-        # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
+        # Higher order input (Top down)
+        if mode == 0:
+            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, trial_pulses)
+        else:
+            q_vip, vip_in = img_change_nov(dt, steps, t_ges, trial_pulses)
 
-        # vip_in = np.tile(vip_in, (no_of_units, 1))
-        # vip_in = np.swapaxes(vip_in, 0, 1)
-
-        [f_rates, thal_input, F, D] = run_sim(i_t, vip_in, q_thal, q_vip,
-                                              f_flag, d_flag, dt, steps, v_flag)
-
-        # d_flag = np.ones((4, 4))
-        # d_flag = np.zeros((4, 4))
-        # f_flag = d_flag
-
-        # no_of_units = 1
-        #
-        # [f_rates2, _, _, _] = run_sim(no_of_units, i_t, baseline, vip_in, f_flag, d_flag, dt, steps)
+        [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
         plt.figure()
 
@@ -287,3 +264,45 @@ def exe_wilson_cowan():
         plt.xlabel("t / s")
 
     plt.show()
+
+
+def img_omission_fam(dt, steps, t_ges, trial_pulses):
+    stim_dur = 20 * 1e-3
+    inter_stim_dur = 750 * 1e-3 - stim_dur
+    inter_trial_dur = 1500 * 1e-3 - stim_dur
+    # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
+    # trial_pulses = trial_pulses - 1
+    q_vip = 0.25
+    # q_vip = 1
+    vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
+    stim_dur2 = 750 * 1e-3
+    # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
+    vip_amp_2 = 1 / q_vip
+    vip_decay_amp = vip_amp_2 * 0.5
+    rev_fac = 1.5
+    vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ges, stim_dur2, inter_stim_dur, t_ges, 1,
+                                                    steps, dt)
+    vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps,
+                                                                      dt)
+    vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+    # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
+    # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
+    # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
+    return q_vip, vip_in
+
+
+def img_change_nov(dt, steps, t_ges, trial_pulses):
+    stim_dur = 20 * 1e-3
+    inter_stim_dur = 750 * 1e-3 - stim_dur
+    inter_trial_dur = 1500 * 1e-3 - stim_dur
+
+    q_vip = 0.25
+    vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+
+    nov_amp = 1.25
+    vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.45, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+    # vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, trial_pulses, steps, dt)
+
+    return q_vip, vip_in
