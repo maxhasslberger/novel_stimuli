@@ -161,7 +161,7 @@ def exe_wilson_cowan():
             break
 
         # Mode config
-        mode = 1
+        mode = 0
 
         mode_str = ["Image Omission - Familiar", "Image Change - Novel"]
         xlims = [[4.4, 6.3], [3.7, 4.8]]
@@ -207,90 +207,96 @@ def exe_wilson_cowan():
 
         [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
-        # Presentation plots
-        time = np.arange(0, t_ges, dt)
-        population = ["Excitatory", "PV", "SST", "VIP"]
-
-        for i in range(f_rates.shape[1]):
-            plt.figure()
-            scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
-            plt.plot(time, i_t * q_thal * scale_fac)
-            plt.plot(time, vip_in * q_vip * scale_fac)
-            plt.plot(time, f_rates[:-1, i])
-
-            plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
-                        "Top-down input (x" + str(round(scale_fac, 2)) + ")",
-                        population[i] + " Activity (normalized)"])
-            plt.title(mode_str[mode])
-            plt.xlabel("t / s")
-            plt.xlim(xlims[mode])
-
-        # # Std plots
-        # plt.figure()
-        #
-        # time = np.arange(0, t_ges + dt, dt)
-        # scatter = ['o', '^', '.', '-']
+        # # Presentation plots
+        # time = np.arange(0, t_ges, dt)
+        # population = ["Excitatory", "PV", "SST", "VIP"]
         #
         # for i in range(f_rates.shape[1]):
-        #     plt.plot(time, f_rates[:, i], scatter[i])
+        #     plt.figure()
+        #     scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+        #     plt.plot(time, i_t * q_thal * scale_fac)
+        #     plt.plot(time, vip_in * q_vip * scale_fac)
+        #     plt.plot(time, f_rates[:-1, i])
         #
-        # plt.legend(['exc', 'pv', 'sst', 'vip'])
-        # plt.title("Firing rates Exp1")
-        # plt.xlabel("t / s")
-        # # plt.ylim(0, 0.6)
-        #
-        # plt.figure()
-        #
-        # plt.plot(time, F)
-        # plt.plot(time, D)
-        # plt.plot(time, thal_input)
-        #
-        # plt.legend(['F', 'D', 'Thalamic input'])
-        # plt.title("Short-term plasticity")
-        # plt.xlabel("t / s")
-        #
-        # plt.figure()
-        #
-        # time = np.arange(0, t_ges, dt)
-        #
-        # plt.plot(time, q_thal * i_t)
-        # plt.plot(time, q_vip * vip_in)
-        #
-        # plt.legend(['Stimulus', 'Higher Order'])
-        # plt.title("Input signals")
-        # plt.xlabel("t / s")
+        #     plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+        #                 "Top-down input (x" + str(round(scale_fac, 2)) + ")",
+        #                 population[i] + " Activity (normalized)"])
+        #     plt.title(mode_str[mode])
+        #     plt.xlabel("t / s")
+        #     plt.xlim(xlims[mode])
+
+        # Std plots
+        plt.figure()
+
+        time = np.arange(0, t_ges + dt, dt)
+        scatter = ['o', '^', '.', '-']
+
+        for i in range(f_rates.shape[1]):
+            plt.plot(time, f_rates[:, i], scatter[i])
+
+        plt.legend(['exc', 'pv', 'sst', 'vip'])
+        plt.title("Firing rates Exp1")
+        plt.xlabel("t / s")
+        # plt.ylim(0, 0.6)
+
+        plt.figure()
+
+        plt.plot(time, F)
+        plt.plot(time, D)
+        plt.plot(time, thal_input)
+
+        plt.legend(['F', 'D', 'Thalamic input'])
+        plt.title("Short-term plasticity")
+        plt.xlabel("t / s")
+
+        plt.figure()
+
+        time = np.arange(0, t_ges, dt)
+
+        plt.plot(time, q_thal * i_t)
+        plt.plot(time, q_vip * vip_in)
+
+        plt.legend(['Stimulus', 'Higher Order'])
+        plt.title("Input signals")
+        plt.xlabel("t / s")
 
     plt.show()
 
 
-def img_omission_fam(dt, steps, t_ges, trial_pulses):
+def img_omission_fam(dt, steps, t_ref, trial_pulses):
     stim_dur = 20 * 1e-3
+    stim_dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
     # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
     # trial_pulses = trial_pulses - 1
     q_vip = 0.25
     # q_vip = 1
-    vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    vip_in = cont_pulse_trials(1, stim_dur / t_ref, inter_stim_dur - dt, stim_dur, stim_dur, 1, steps, dt)
+    vip_in[int((0.45 + stim_dur / t_ref) * steps):] = 0.0
+    vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    stim_dur2 = 750 * 1e-3
     # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
     vip_amp_2 = 1 / q_vip
     vip_decay_amp = vip_amp_2 * 0.5
     rev_fac = 1.5
-    vip_in = vip_in + vip_amp_2 * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ges, stim_dur2, inter_stim_dur, t_ges, 1,
-                                                    steps, dt)
-    vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps,
-                                                                      dt)
-    vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ges, 1, steps, dt)
-    vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+
+    vip_in = vip_in + cont_pulse_trials(1, 0.45 + stim_dur / t_ref, inter_stim_dur - dt, t_ref, t_ref, 1, steps, dt)
+    vip_in = vip_in + cont_pulse_trials(0, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur, t_ref, 1, steps, dt)
+    vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur,
+                                                          t_ref, 1, steps, dt)  # big ramp
+
+    vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps,
+                                                                      dt)  # ramp decay
+    vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ref, 1, steps, dt)
+    vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
     # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
     # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
     return q_vip, vip_in
 
 
-def img_change_nov(dt, steps, t_ges, trial_pulses):
+def img_change_nov(dt, steps, t_ref, trial_pulses):
     stim_dur = 20 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
@@ -299,7 +305,7 @@ def img_change_nov(dt, steps, t_ges, trial_pulses):
     vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
 
     nov_amp = 1.25
-    vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.45, stim_dur, inter_stim_dur, t_ges, 1, steps, dt)
+    vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.45, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
     # vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, trial_pulses, steps, dt)
 
     return q_vip, vip_in
