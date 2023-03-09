@@ -4,6 +4,8 @@ import numpy as np
 # from itertools import combinations
 import matplotlib.pyplot as plt
 
+# TODO: Reset stp to real values and change f_function param for similar effects -> Presentation proof no stp...
+
 
 def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
@@ -201,7 +203,7 @@ def exe_wilson_cowan():
 
         # Higher order input (Top down)
         if mode == 0:
-            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, trial_pulses, stim_dur)
+            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, stim_dur)
         else:
             q_vip, vip_in = img_change_nov(dt, steps, t_ges, trial_pulses)
 
@@ -264,7 +266,7 @@ def exe_wilson_cowan():
     plt.show()
 
 
-def img_omission_fam(dt, steps, t_ref, trial_pulses, bot_up_dur):
+def img_omission_fam(dt, steps, t_ref, bot_up_dur):
     stim_dur = 20 * 1e-3
     stim_dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
@@ -277,7 +279,7 @@ def img_omission_fam(dt, steps, t_ref, trial_pulses, bot_up_dur):
     vip_in = cont_pulse_trials(1, bot_up_dur / t_ref, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
     vip_in[int((0.45 + stim_dur / t_ref) * steps):] = 0.0
     vip_in = vip_in + cont_pulse_trials(1, 0.625, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
-    vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    # vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
     # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
     vip_amp_2 = 1 / q_vip
@@ -292,7 +294,7 @@ def img_omission_fam(dt, steps, t_ref, trial_pulses, bot_up_dur):
     vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps,
                                                                       dt)  # ramp decay
     vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ref, 1, steps, dt)
-    vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
+    # vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
     # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
     # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
     # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
