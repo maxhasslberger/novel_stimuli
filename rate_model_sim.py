@@ -168,7 +168,7 @@ def exe_wilson_cowan():
 
         # dt = 0.05 * 1e-3 / dt_i  # s
         dt = 0.05 * 1e-3  # s
-        t_ges = 10000 * 1e-3  # s
+        t_ges = 10  # s
         steps = int(np.ceil(t_ges / dt))
 
         # Switch on/off arbitrary no of facilitation and depression terms
@@ -201,45 +201,46 @@ def exe_wilson_cowan():
 
         # Higher order input (Top down)
         if mode == 0:
-            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, trial_pulses)
+            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, trial_pulses, stim_dur)
         else:
             q_vip, vip_in = img_change_nov(dt, steps, t_ges, trial_pulses)
 
         [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
-        # # Presentation plots
-        # time = np.arange(0, t_ges, dt)
-        # population = ["Excitatory", "PV", "SST", "VIP"]
-        #
-        # for i in range(f_rates.shape[1]):
-        #     plt.figure()
-        #     scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
-        #     plt.plot(time, i_t * q_thal * scale_fac)
-        #     plt.plot(time, vip_in * q_vip * scale_fac)
-        #     plt.plot(time, f_rates[:-1, i])
-        #
-        #     plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
-        #                 "Top-down input (x" + str(round(scale_fac, 2)) + ")",
-        #                 population[i] + " Activity (normalized)"])
-        #     plt.title(mode_str[mode])
-        #     plt.xlabel("t / s")
-        #     plt.xlim(xlims[mode])
-
-        # Std plots
-        plt.figure()
-
-        time = np.arange(0, t_ges + dt, dt)
-        scatter = ['o', '^', '.', '-']
+        # Presentation plots
+        time = np.arange(0, t_ges, dt)
+        population = ["Excitatory", "PV", "SST", "VIP"]
 
         for i in range(f_rates.shape[1]):
-            plt.plot(time, f_rates[:, i], scatter[i])
+            plt.figure()
+            scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+            plt.plot(time, i_t * q_thal * scale_fac)
+            plt.plot(time, vip_in * q_vip * scale_fac)
+            plt.plot(time, f_rates[:-1, i])
 
-        plt.legend(['exc', 'pv', 'sst', 'vip'])
-        plt.title("Firing rates Exp1")
-        plt.xlabel("t / s")
-        # plt.ylim(0, 0.6)
+            plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+                        "Top-down input (x" + str(round(scale_fac, 2)) + ")",
+                        population[i] + " Activity (normalized)"])
+            plt.title(mode_str[mode])
+            plt.xlabel("t / s")
+            plt.xlim(xlims[mode])
+
+        # # Std plots
+        # plt.figure()
+        #
+        # time = np.arange(0, t_ges + dt, dt)
+        # scatter = ['o', '^', '.', '-']
+        #
+        # for i in range(f_rates.shape[1]):
+        #     plt.plot(time, f_rates[:, i], scatter[i])
+        #
+        # plt.legend(['exc', 'pv', 'sst', 'vip'])
+        # plt.title("Firing rates Exp1")
+        # plt.xlabel("t / s")
+        # # plt.ylim(0, 0.6)
 
         plt.figure()
+        time = np.arange(0, t_ges + dt, dt)
 
         plt.plot(time, F)
         plt.plot(time, D)
@@ -263,17 +264,19 @@ def exe_wilson_cowan():
     plt.show()
 
 
-def img_omission_fam(dt, steps, t_ref, trial_pulses):
+def img_omission_fam(dt, steps, t_ref, trial_pulses, bot_up_dur):
     stim_dur = 20 * 1e-3
     stim_dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
+    bot_up_inter_dur = inter_stim_dur + stim_dur - bot_up_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
     # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
     # trial_pulses = trial_pulses - 1
     q_vip = 0.25
     # q_vip = 1
-    vip_in = cont_pulse_trials(1, stim_dur / t_ref, inter_stim_dur - dt, stim_dur, stim_dur, 1, steps, dt)
+    vip_in = cont_pulse_trials(1, bot_up_dur / t_ref, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
     vip_in[int((0.45 + stim_dur / t_ref) * steps):] = 0.0
+    vip_in = vip_in + cont_pulse_trials(1, 0.625, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
     vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
     # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
     # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
@@ -281,7 +284,7 @@ def img_omission_fam(dt, steps, t_ref, trial_pulses):
     vip_decay_amp = vip_amp_2 * 0.5
     rev_fac = 1.5
 
-    vip_in = vip_in + cont_pulse_trials(1, 0.45 + stim_dur / t_ref, inter_stim_dur - dt, t_ref, t_ref, 1, steps, dt)
+    vip_in = vip_in + cont_pulse_trials(1, 0.45 + bot_up_dur / t_ref, bot_up_inter_dur - dt, t_ref, t_ref, 1, steps, dt)
     vip_in = vip_in + cont_pulse_trials(0, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur, t_ref, 1, steps, dt)
     vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur,
                                                           t_ref, 1, steps, dt)  # big ramp
