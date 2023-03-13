@@ -146,7 +146,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         d_dt = wc_fcn(f_rates[i, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
         f_rates[i+1, :] = forward_euler_rates(d_dt, f_rates[i, :], dt)
 
-    return f_rates, thal_input, V2, V
+    return f_rates, thal_input, F, D
 
 
 def unit_gen(arr, no_of_units):
@@ -157,7 +157,7 @@ def unit_gen(arr, no_of_units):
 
 def exe_wilson_cowan():
     # Mode config
-    mode = 0
+    mode = 2
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
                 "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
