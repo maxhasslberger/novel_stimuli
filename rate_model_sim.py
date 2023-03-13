@@ -116,7 +116,8 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         F[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, F[i], i_t[i], dt)
         V2[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, V2[i], vip_in[i], dt)
 
-        if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and mode >= 3:  # novel stim following
+        # Novel stim following
+        if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and np.mod(mode, 2):
             thal_input[i + 1] = 0.45
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
@@ -177,23 +178,12 @@ def exe_wilson_cowan():
     # v_flag = np.zeros((4, 4))
     # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    # input stimulus (Bottom up)
+    # input param
     stim_dur = 250 * 1e-3
     inter_stim_dur = 500 * 1e-3
-    # inter_trial_dur = 2400 * 1e-3
     inter_trial_dur = 1250 * 1e-3
 
-    # stim_dur = 200 * 1e-3
-    # inter_stim_dur = 600 * 1e-3
-    # inter_trial_dur = 1400 * 1e-3
-    trial_pulses = 7
-    q_thal = 2.0
-    i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-    # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
-    # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
-    # i_t = np.tile(i_t, (no_of_units, 1))
-    # i_t = np.swapaxes(i_t, 0, 1)
-    # i_t = np.ones(steps)
+    trial_pulses = 7 + 8 * np.mod(mode, 2)
 
     # Higher order input (Top down)
     if mode == 0:
@@ -208,6 +198,10 @@ def exe_wilson_cowan():
         q_vip, vip_in = ho.img_omission_novp(dt, steps, t_ges, stim_dur, trial_pulses)
     else:
         q_vip, vip_in = ho.img_change_novp(dt, steps, t_ges, stim_dur, trial_pulses)
+
+    # input stimulus (Bottom up)
+    q_thal = 2.0
+    i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
 
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
@@ -229,40 +223,40 @@ def exe_wilson_cowan():
         plt.xlabel("t / s")
         plt.xlim(xlims[mode])
 
-        # # Std plots
-        # plt.figure()
-        #
-        # time = np.arange(0, t_ges + dt, dt)
-        # scatter = ['o', '^', '.', '-']
-        #
-        # for i in range(f_rates.shape[1]):
-        #     plt.plot(time, f_rates[:, i], scatter[i])
-        #
-        # plt.legend(['exc', 'pv', 'sst', 'vip'])
-        # plt.title("Firing rates Exp1")
-        # plt.xlabel("t / s")
-        # # plt.ylim(0, 0.6)
+    # # Std plots
+    # plt.figure()
+    #
+    # time = np.arange(0, t_ges + dt, dt)
+    # scatter = ['o', '^', '.', '-']
+    #
+    # for i in range(f_rates.shape[1]):
+    #     plt.plot(time, f_rates[:, i], scatter[i])
+    #
+    # plt.legend(['exc', 'pv', 'sst', 'vip'])
+    # plt.title("Firing rates Exp1")
+    # plt.xlabel("t / s")
+    # # plt.ylim(0, 0.6)
 
-        plt.figure()
-        time = np.arange(0, t_ges + dt, dt)
+    plt.figure()
+    time = np.arange(0, t_ges + dt, dt)
 
-        plt.plot(time, F)
-        plt.plot(time, D)
-        plt.plot(time, thal_input)
+    plt.plot(time, F)
+    plt.plot(time, D)
+    plt.plot(time, thal_input)
 
-        plt.legend(['F', 'D', 'Thalamic input'])
-        plt.title("Short-term plasticity")
-        plt.xlabel("t / s")
+    plt.legend(['F', 'D', 'Thalamic input'])
+    plt.title("Short-term plasticity")
+    plt.xlabel("t / s")
 
-        plt.figure()
+    plt.figure()
 
-        time = np.arange(0, t_ges, dt)
+    time = np.arange(0, t_ges, dt)
 
-        plt.plot(time, q_thal * i_t)
-        plt.plot(time, q_vip * vip_in)
+    plt.plot(time, q_thal * i_t)
+    plt.plot(time, q_vip * vip_in)
 
-        plt.legend(['Stimulus', 'Higher Order'])
-        plt.title("Input signals")
-        plt.xlabel("t / s")
+    plt.legend(['Stimulus', 'Higher Order'])
+    plt.title("Input signals")
+    plt.xlabel("t / s")
 
     plt.show()
