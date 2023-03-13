@@ -57,6 +57,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
     tau_d2 = 20 * 1e-3  # s
     # tau_df2 = tau_d2  # s
     g_0 = 1
+    max_thal_novel = 0.3
     thal_input = np.ones((steps + 1)) * g_0
     # thal_in = np.zeros((steps + 1))
     # thal_arg = np.zeros((steps + 1))
@@ -119,6 +120,10 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         # Novel stim following
         if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and np.mod(mode, 2):
             thal_input[i + 1] = 0.45
+
+        # Thalamic restriction in novel img omission case
+        if thal_input[i+1] > max_thal_novel and mode == 2:
+            thal_input[i + 1] = max_thal_novel
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
         #     #D[i + 1] = 0
