@@ -1,4 +1,5 @@
 from functions import f_function, cont_pulse_trials, forward_euler_rates, forward_euler
+import higher_order as ho
 
 import numpy as np
 # from itertools import combinations
@@ -115,7 +116,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         F[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, F[i], i_t[i], dt)
         V2[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, V2[i], vip_in[i], dt)
 
-        if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and mode == 1:  # novel stim following
+        if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and mode >= 3:  # novel stim following
             thal_input[i + 1] = 0.45
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
@@ -154,74 +155,79 @@ def unit_gen(arr, no_of_units):
 
 
 def exe_wilson_cowan():
-    for dt_i in range(1, 3):
-        if dt_i == 2:
-            break
+    # Mode config
+    mode = 3
 
-        # Mode config
-        mode = 0
+    mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
+                "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
+    xlims = [[4.4, 6.3], [3.7, 4.8], [4.4, 6.3], [3.7, 4.8], [4.4, 6.3], [3.7, 4.8]]
 
-        mode_str = ["Image Omission - Familiar", "Image Change - Novel"]
-        xlims = [[4.4, 6.3], [3.7, 4.8]]
+    # dt = 0.05 * 1e-3 / dt_i  # s
+    dt = 0.05 * 1e-3  # s
+    t_ges = 10  # s
+    steps = int(np.ceil(t_ges / dt))
 
-        # dt = 0.05 * 1e-3 / dt_i  # s
-        dt = 0.05 * 1e-3  # s
-        t_ges = 10  # s
-        steps = int(np.ceil(t_ges / dt))
+    # Switch on/off arbitrary no of facilitation and depression terms
+    # d_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0]])
+    d_flag = np.array([[1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0]])
+    # d_flag = np.zeros((4, 4))
+    # d_flag = np.ones((4, 4))
+    f_flag = d_flag
+    v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]])
+    # v_flag = np.zeros((4, 4))
+    # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-        # Switch on/off arbitrary no of facilitation and depression terms
-        # d_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0]])
-        d_flag = np.array([[1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0], [1, 1, 1, 0]])
-        # d_flag = np.zeros((4, 4))
-        # d_flag = np.ones((4, 4))
-        f_flag = d_flag
-        v_flag = np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]])
-        # v_flag = np.zeros((4, 4))
-        # v_flag = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    # input stimulus (Bottom up)
+    stim_dur = 250 * 1e-3
+    inter_stim_dur = 500 * 1e-3
+    # inter_trial_dur = 2400 * 1e-3
+    inter_trial_dur = 1250 * 1e-3
 
-        # input stimulus (Bottom up)
-        stim_dur = 250 * 1e-3
-        inter_stim_dur = 500 * 1e-3
-        # inter_trial_dur = 2400 * 1e-3
-        inter_trial_dur = 1250 * 1e-3
+    # stim_dur = 200 * 1e-3
+    # inter_stim_dur = 600 * 1e-3
+    # inter_trial_dur = 1400 * 1e-3
+    trial_pulses = 7
+    q_thal = 2.0
+    i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
+    # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
+    # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
+    # i_t = np.tile(i_t, (no_of_units, 1))
+    # i_t = np.swapaxes(i_t, 0, 1)
+    # i_t = np.ones(steps)
 
-        # stim_dur = 200 * 1e-3
-        # inter_stim_dur = 600 * 1e-3
-        # inter_trial_dur = 1400 * 1e-3
-        trial_pulses = 7
-        q_thal = 2.0
-        i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-        # i_t = i_t - 0.5 * magnitude * cont_pulse_trials(0, stim_dur, inter_stim_dur, 8300 * 1e-3, 1, steps, dt)
-        # i_t[84000:85000] = 0.5 * magnitude  # higher order impacting input plasticity (depressive)
-        # i_t = np.tile(i_t, (no_of_units, 1))
-        # i_t = np.swapaxes(i_t, 0, 1)
-        # i_t = np.ones(steps)
+    # Higher order input (Top down)
+    if mode == 0:
+        q_vip, vip_in = ho.img_omission_fam(dt, steps, t_ges, stim_dur)
+    elif mode == 1:
+        q_vip, vip_in = ho.img_change_fam(dt, steps, t_ges, stim_dur)
+    elif mode == 2:
+        q_vip, vip_in = ho.img_omission_nov(dt, steps, t_ges, trial_pulses)
+    elif mode == 3:
+        q_vip, vip_in = ho.img_change_nov(dt, steps, t_ges, trial_pulses)
+    elif mode == 4:
+        q_vip, vip_in = ho.img_omission_novp(dt, steps, t_ges, stim_dur, trial_pulses)
+    else:
+        q_vip, vip_in = ho.img_change_novp(dt, steps, t_ges, stim_dur, trial_pulses)
 
-        # Higher order input (Top down)
-        if mode == 0:
-            q_vip, vip_in = img_omission_fam(dt, steps, t_ges, stim_dur)
-        else:
-            q_vip, vip_in = img_change_nov(dt, steps, t_ges, trial_pulses)
+    [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
-        [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
+    # Presentation plots
+    time = np.arange(0, t_ges, dt)
+    population = ["Excitatory", "PV", "SST", "VIP"]
 
-        # Presentation plots
-        time = np.arange(0, t_ges, dt)
-        population = ["Excitatory", "PV", "SST", "VIP"]
+    for i in range(f_rates.shape[1]):
+        plt.figure()
+        scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+        plt.plot(time, i_t * q_thal * scale_fac)
+        plt.plot(time, vip_in * q_vip * scale_fac)
+        plt.plot(time, f_rates[:-1, i])
 
-        for i in range(f_rates.shape[1]):
-            plt.figure()
-            scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
-            plt.plot(time, i_t * q_thal * scale_fac)
-            plt.plot(time, vip_in * q_vip * scale_fac)
-            plt.plot(time, f_rates[:-1, i])
-
-            plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
-                        "Top-down input (x" + str(round(scale_fac, 2)) + ")",
-                        population[i] + " Activity (normalized)"])
-            plt.title(mode_str[mode])
-            plt.xlabel("t / s")
-            plt.xlim(xlims[mode])
+        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+                    "Top-down input (x" + str(round(scale_fac, 2)) + ")",
+                    population[i] + " Activity (normalized)"])
+        plt.title(mode_str[mode])
+        plt.xlabel("t / s")
+        plt.xlim(xlims[mode])
 
         # # Std plots
         # plt.figure()
@@ -260,53 +266,3 @@ def exe_wilson_cowan():
         plt.xlabel("t / s")
 
     plt.show()
-
-
-def img_omission_fam(dt, steps, t_ref, bot_up_dur):
-    stim_dur = 20 * 1e-3
-    stim_dur2 = 750 * 1e-3
-    inter_stim_dur = 750 * 1e-3 - stim_dur
-    bot_up_inter_dur = inter_stim_dur + stim_dur - bot_up_dur
-    # inter_trial_dur = 1500 * 1e-3 - stim_dur
-    # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
-    # trial_pulses = trial_pulses - 1
-    q_vip = 0.25
-    # q_vip = 1
-    vip_in = cont_pulse_trials(1, bot_up_dur / t_ref, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
-    vip_in[int((0.45 + stim_dur / t_ref) * steps):] = 0.0
-    vip_in = vip_in + cont_pulse_trials(1, 0.625, bot_up_inter_dur - 2*dt, t_ref, bot_up_dur, 1, steps, dt)
-    # vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-    # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
-    vip_amp_2 = 1 / q_vip
-    vip_decay_amp = vip_amp_2 * 0.5
-    rev_fac = 1.5
-
-    vip_in = vip_in + cont_pulse_trials(1, 0.45 + bot_up_dur / t_ref, bot_up_inter_dur, t_ref, t_ref, 1, steps, dt)
-    vip_in = vip_in + cont_pulse_trials(0, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur, t_ref, 1, steps, dt)
-    vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur,
-                                                          t_ref, 1, steps, dt)  # big ramp
-
-    vip_in = vip_in + (vip_amp_2 - vip_decay_amp) * cont_pulse_trials(2, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps,
-                                                                      dt)  # ramp decay
-    vip_in = vip_in + vip_decay_amp * cont_pulse_trials(0, 0.6, stim_dur * rev_fac, inter_stim_dur, t_ref, 1, steps, dt)
-    # vip_in = vip_in - cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
-    # vip_in[84000:84200] = vip_in[84000:84200] - q_vip
-    # vip_in = vip_in + 0.5 * cont_pulse_trials(0, 350 * 1e-3, inter_stim_dur,
-    # 2900 * 1e-3 + 100 * 1e-3, 1, steps, dt)
-    return q_vip, vip_in
-
-
-def img_change_nov(dt, steps, t_ref, trial_pulses):
-    stim_dur = 20 * 1e-3
-    inter_stim_dur = 750 * 1e-3 - stim_dur
-    inter_trial_dur = 1500 * 1e-3 - stim_dur
-
-    q_vip = 0.25
-    vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-
-    nov_amp = 1.25
-    vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.45, stim_dur, inter_stim_dur, t_ref, 1, steps, dt)
-    # vip_in = vip_in + nov_amp * cont_pulse_trials(0, 0.6, stim_dur, inter_stim_dur, t_ges, trial_pulses, steps, dt)
-
-    return q_vip, vip_in
