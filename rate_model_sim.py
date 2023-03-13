@@ -25,7 +25,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -3, -1, -0], [1, -2, -2, -0], [6, -0, -0, -3], [0, -0, -0.1, -3]])
+    weights = w_amp * np.array([[1.1, -3, -1, -0], [1, -2, -2, -0], [6, -2, -0, -14], [0, -0, -0.1, -3]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -39,19 +39,17 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
     tau_df2 = 20 * 1e-3  # s
     stp_amp = 1
 
-    D = np.zeros((steps + 1))
-    D[0:2] = 1.0
-    V = np.zeros((steps + 1))
-    V[0:2] = 1.0
+    D = np.ones((steps + 1))
+    V = np.ones((steps + 1))
     a_dep = stp_amp * np.array([[-0.19, 0.49, 0.12, 0], [-0.04, 0.5, 0.11, 0], [-0, 0.35, 0.0, 0], [-0, 0.0, 0, 0]])
     # a_dep = np.array([[-0.19, 0.49, 0.12, 0.14], [-0.04, 0.5, 0.11, 0.13], [-0, 0.35, 0.18, 0], [-0, 0.37, 0, 0]])
 
     F = np.zeros((steps + 1))
     V2 = np.zeros((steps + 1))
-    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.9], [0.0, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.0, -0, -0.28, -0.04]])
     # a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
 
-    v_flag = v_flag * 15
+    # v_flag = v_flag * 15
 
     # thalamic input
     # q = 5
@@ -60,10 +58,10 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
     tau_d2 = 20 * 1e-3  # s
     # tau_df2 = tau_d2  # s
     g_0 = 1
-    thal_input = np.zeros((steps + 1))
+    thal_input = np.ones((steps + 1)) * g_0
     # thal_in = np.zeros((steps + 1))
     # thal_arg = np.zeros((steps + 1))
-    thal_input[0:2] = g_0
+    # thal_input[0:2] = g_0
     # thal_in[0:2] = g_0
     # thal_arg[0] = g_0
     baseline = [0.05, 0.0, 0.0, 0.0]
@@ -271,7 +269,7 @@ def img_omission_fam(dt, steps, t_ref, bot_up_dur):
     stim_dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     bot_up_inter_dur = inter_stim_dur + stim_dur - bot_up_dur
-    inter_trial_dur = 1500 * 1e-3 - stim_dur
+    # inter_trial_dur = 1500 * 1e-3 - stim_dur
     # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
     # trial_pulses = trial_pulses - 1
     q_vip = 0.25
