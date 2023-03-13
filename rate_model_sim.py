@@ -24,7 +24,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
     w_amp = 1
     # weights = w_amp * np.array([[1.1, -2, -1, -0.01], [1, -2, -2, -0.01], [6, -0, -0, -10], [0, -1.5, -0.5, -5]])
-    weights = w_amp * np.array([[1.1, -3, -1, -0], [1, -2, -2, -0], [6, -2, -0, -14], [0, -0, -0.1, -3]])
+    weights = w_amp * np.array([[1.1, -3, -1, -0], [1, -2, -2, -0], [6, -2, -0, -13.2], [0, -0, -0.1, -3]])
     # weights = w_amp * np.array([[0.8, -1, -1, -0.0], [1, -1, -0.5, -0.0], [1, -0, -0, -0.25], [1, -0.0, -0.6, -0.0]])
     # [[post_exc], [post_pv], [post_sst], [post_vip]]
 
@@ -45,7 +45,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
     F = np.zeros((steps + 1))
     V2 = np.zeros((steps + 1))
-    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.0, -0, -0.28, -0.04]])
+    a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.0, -0, -0.0, -0.04]])
     # a_fac = stp_amp * np.array([[0, -0, -0, -0], [0, -0, -0, -0], [0.18, -0, -0, -0.05], [0.03, -0, -0.28, -0.04]])
 
     # v_flag = v_flag * 15
@@ -157,7 +157,7 @@ def unit_gen(arr, no_of_units):
 
 def exe_wilson_cowan():
     # Mode config
-    mode = 3
+    mode = 0
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
                 "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
@@ -205,37 +205,19 @@ def exe_wilson_cowan():
 
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
-    # Presentation plots
-    time = np.arange(0, t_ges, dt)
-    population = ["Excitatory", "PV", "SST", "VIP"]
+    # Std plots
+    plt.figure()
+
+    time = np.arange(0, t_ges + dt, dt)
+    scatter = ['o', '^', '.', '-']
 
     for i in range(f_rates.shape[1]):
-        plt.figure()
-        scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
-        plt.plot(time, i_t * q_thal * scale_fac)
-        plt.plot(time, vip_in * q_vip * scale_fac)
-        plt.plot(time, f_rates[:-1, i])
+        plt.plot(time, f_rates[:, i], scatter[i])
 
-        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
-                    "Top-down input (x" + str(round(scale_fac, 2)) + ")",
-                    population[i] + " Activity (normalized)"])
-        plt.title(mode_str[mode])
-        plt.xlabel("t / s")
-        plt.xlim(xlims[mode])
-
-    # # Std plots
-    # plt.figure()
-    #
-    # time = np.arange(0, t_ges + dt, dt)
-    # scatter = ['o', '^', '.', '-']
-    #
-    # for i in range(f_rates.shape[1]):
-    #     plt.plot(time, f_rates[:, i], scatter[i])
-    #
-    # plt.legend(['exc', 'pv', 'sst', 'vip'])
-    # plt.title("Firing rates Exp1")
-    # plt.xlabel("t / s")
-    # # plt.ylim(0, 0.6)
+    plt.legend(['exc', 'pv', 'sst', 'vip'])
+    plt.title("Firing rates Exp1")
+    plt.xlabel("t / s")
+    # plt.ylim(0, 0.6)
 
     plt.figure()
     time = np.arange(0, t_ges + dt, dt)
@@ -258,5 +240,23 @@ def exe_wilson_cowan():
     plt.legend(['Stimulus', 'Higher Order'])
     plt.title("Input signals")
     plt.xlabel("t / s")
+
+    # Presentation plots
+    time = np.arange(0, t_ges, dt)
+    population = ["Excitatory", "PV", "SST", "VIP"]
+
+    for i in range(f_rates.shape[1]):
+        plt.figure()
+        scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+        plt.plot(time, i_t * q_thal * scale_fac)
+        plt.plot(time, vip_in * q_vip * scale_fac)
+        plt.plot(time, f_rates[:-1, i])
+
+        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+                    "Top-down input (x" + str(round(scale_fac, 2)) + ")",
+                    population[i] + " Activity (normalized)"])
+        plt.title(mode_str[mode])
+        plt.xlabel("t / s")
+        plt.xlim(xlims[mode])
 
     plt.show()
