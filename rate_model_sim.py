@@ -4,8 +4,6 @@ import numpy as np
 # from itertools import combinations
 import matplotlib.pyplot as plt
 
-# TODO: Reset stp to real values and change f_function param for similar effects -> Presentation proof no stp...
-
 
 def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
     ############################################################
@@ -284,7 +282,7 @@ def img_omission_fam(dt, steps, t_ref, bot_up_dur):
     vip_decay_amp = vip_amp_2 * 0.5
     rev_fac = 1.5
 
-    vip_in = vip_in + cont_pulse_trials(1, 0.45 + bot_up_dur / t_ref, bot_up_inter_dur - dt, t_ref, t_ref, 1, steps, dt)
+    vip_in = vip_in + cont_pulse_trials(1, 0.45 + bot_up_dur / t_ref, bot_up_inter_dur, t_ref, t_ref, 1, steps, dt)
     vip_in = vip_in + cont_pulse_trials(0, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur, t_ref, 1, steps, dt)
     vip_in = vip_in + (vip_amp_2 - 1) * cont_pulse_trials(1, 0.6 - stim_dur2 / t_ref, stim_dur2, inter_stim_dur,
                                                           t_ref, 1, steps, dt)  # big ramp
