@@ -7,17 +7,11 @@ def img_omission_fam(dt, steps, t_ref, bot_up_dur):
     stim_dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     bot_up_inter_dur = inter_stim_dur + stim_dur - bot_up_dur
-    # inter_trial_dur = 1500 * 1e-3 - stim_dur
-    # off_frac = (inter_stim_dur + stim_dur * 0.5) / t_ges
-    # trial_pulses = trial_pulses - 1
+
     q_vip = 0.125
-    # q_vip = 1
     vip_in = cont_pulse_trials(1, bot_up_dur / t_ref, bot_up_inter_dur, t_ref, bot_up_dur, 1, steps, dt)
     vip_in[int((0.45 + stim_dur / t_ref) * steps):] = 0.0
     vip_in = vip_in + cont_pulse_trials(1, 0.625, bot_up_inter_dur, t_ref, bot_up_dur, 1, steps, dt)
-    # vip_in = vip_in + cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
-    # vip_in[int(steps / 2):] = vip_in[int(steps / 2):] / 1.5
-    # vip_in[int(0.6*steps):int((0.6+stim_dur*2/10)*steps)] = 1
 
     # Omission
     vip_amp_2 = 1 / q_vip
@@ -56,16 +50,16 @@ def img_change_fam(dt, steps, t_ref, bot_up_dur):
 
 
 def img_omission_nov(dt, steps, t_ref, trial_pulses):
+    # Cont.
     stim_dur = 20 * 1e-3
     dur2 = 750 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
 
     q_vip = 0.4
-    # q_vip = 0.125
     vip_in = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
 
-    # Novel stim
+    # Omission
     om_amp = 0.2
     rev_fac = 1
     aft_stim_add = 0.3
@@ -76,6 +70,7 @@ def img_omission_nov(dt, steps, t_ref, trial_pulses):
 
 
 def img_change_nov(dt, steps, t_ref, trial_pulses):
+    # Cont.
     stim_dur = 20 * 1e-3
     inter_stim_dur = 750 * 1e-3 - stim_dur
     inter_trial_dur = 1500 * 1e-3 - stim_dur
