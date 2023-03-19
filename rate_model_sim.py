@@ -55,9 +55,12 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
     # alpha = 0.65
     tau_d1 = 1500 * 1e-3  # s
     tau_d2 = 20 * 1e-3  # s
+    thal_fac = 1.0
+    if 2 <= mode <= 3:  # Novel case
+        tau_d1 = 0.1 * tau_d1
+        thal_fac = 0.4
     # tau_df2 = tau_d2  # s
     g_0 = 1
-    max_thal_novel = 0.3
     thal_input = np.ones((steps + 1)) * g_0
     # thal_in = np.zeros((steps + 1))
     # thal_arg = np.zeros((steps + 1))
@@ -73,7 +76,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         (-rates_arg + f_function(
             np.sum((weights + d_flag * a_dep * (1 - d_arg) + v_flag * a_dep * (1 - v_arg) + f_flag * a_fac * f_arg +
                     v_flag * a_fac * v2_arg) * rates_arg, axis=1) +
-            thal_flag * q_thal * thal_arg * in_arg + vip_flag * q_vip * vip_in_arg
+            thal_flag * q_thal * thal_arg * thal_fac * in_arg + vip_flag * q_vip * vip_in_arg
             - thresholds) + baseline) / tau
     # wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: \
     #     (-rates_arg + f_function(
@@ -117,13 +120,13 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         F[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, F[i], i_t[i], dt)
         V2[i + 1] = forward_euler(fac_fcn, tau_df1, tau_df2, V2[i], vip_in[i], dt)
 
-        # Novel stim following
+        # image change following
         if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and np.mod(mode, 2):
-            thal_input[i + 1] = 0.45
+            thal_input[i + 1] = 0.8 / thal_fac
 
-        # Thalamic restriction in novel img omission case
-        if thal_input[i+1] > max_thal_novel and mode == 2:
-            thal_input[i + 1] = max_thal_novel
+        # # Thalamic restriction in novel img omission case
+        # if thal_input[i+1] > max_thal_novel and mode == 2:
+        #     thal_input[i + 1] = 0.3
 
         # if 0.0*steps < i < 0.5*steps:  # stp on
         #     #D[i + 1] = 0
@@ -151,7 +154,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
         d_dt = wc_fcn(f_rates[i, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
         f_rates[i+1, :] = forward_euler_rates(d_dt, f_rates[i, :], dt)
 
-    return f_rates, thal_input, F, D
+    return f_rates, thal_input*thal_fac, F, D
 
 
 def unit_gen(arr, no_of_units):
@@ -162,7 +165,7 @@ def unit_gen(arr, no_of_units):
 
 def exe_wilson_cowan():
     # Mode config
-    mode = 2
+    mode = 3
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
                 "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
