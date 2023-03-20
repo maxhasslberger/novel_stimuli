@@ -111,16 +111,10 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag,
     return f_rates, thal_input*thal_fac, F, D
 
 
-def unit_gen(arr, no_of_units):
-    arr = np.tile(arr, (no_of_units, 1))
-    arr = np.swapaxes(arr, 0, 1)
-    return arr
-
-
 def exe_wilson_cowan():
     # Mode config
     mode = 4
-    nov_plus = 0.5  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
+    nov_plus = 0.3  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
                 "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
@@ -166,6 +160,11 @@ def exe_wilson_cowan():
 
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus)
 
+    plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims)
+
+
+def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims):
+
     # Std plots
     plt.figure()
 
@@ -183,8 +182,8 @@ def exe_wilson_cowan():
     plt.figure()
     time = np.arange(0, t_ges + dt, dt)
 
-    plt.plot(time, F)
-    plt.plot(time, D)
+    plt.plot(time, fac)
+    plt.plot(time, dep)
     plt.plot(time, thal_input)
 
     plt.legend(['F', 'D', 'Thalamic input'])
@@ -219,5 +218,5 @@ def exe_wilson_cowan():
         plt.title(mode_str[mode])
         plt.xlabel("t / s")
         plt.xlim(xlims[mode])
-
+        # plt.ylim(-0.05, 1.05)
     plt.show()

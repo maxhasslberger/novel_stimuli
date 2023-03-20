@@ -53,7 +53,7 @@ def img_omission_nov(dt, steps, t_ref, trial_pulses):
     # Cont.
     stim_dur = 20 * 1e-3
     dur2 = 750 * 1e-3
-    inter_stim_dur = 750 * 1e-3 - stim_dur
+    inter_stim_dur = 750 * 1e-3 - stim_dur + dt
     inter_trial_dur = 2250 * 1e-3 - stim_dur
 
     q_vip = 0.7
