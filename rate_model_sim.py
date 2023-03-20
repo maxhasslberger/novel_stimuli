@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag):
+def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus):
     ############################################################
     # Init
     ############################################################
@@ -45,11 +45,27 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
     # thalamic input
     tau_d1 = 1500 * 1e-3  # s
+    d1_thal_frac_novel = 0.1
     tau_d2 = 20 * 1e-3  # s
+
     thal_fac = 1.0
+    thal_fac_novel = 0.4
+
+    thal_change = 0.4
+    thal_nov_change_fac = 0.8 / thal_change
+
+    exc_r = 1.5
+    exc_nov_r_fac = 2.1 / exc_r
     if 2 <= mode <= 3:  # Novel case
-        tau_d1 = 0.1 * tau_d1
-        thal_fac = 0.4
+        tau_d1 = d1_thal_frac_novel * tau_d1
+        thal_fac = thal_fac_novel * thal_fac
+        thal_change = thal_nov_change_fac * thal_change
+        exc_r = exc_nov_r_fac * exc_r
+    elif mode >= 4:  # Novel+ case
+        tau_d1 = (d1_thal_frac_novel + nov_plus * (1 - d1_thal_frac_novel)) * tau_d1
+        thal_fac = (thal_fac_novel + nov_plus * (1 - thal_fac_novel)) * thal_fac
+        thal_change = (thal_nov_change_fac + nov_plus * (1 - thal_nov_change_fac)) * thal_change
+        exc_r = (exc_nov_r_fac + nov_plus * (1 - exc_nov_r_fac)) * exc_r
 
     g_0 = 1
     thal_input = np.ones((steps + 1)) * g_0
@@ -63,7 +79,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
             np.sum((weights + d_flag * a_dep * (1 - d_arg) + v_flag * a_dep * (1 - v_arg) + f_flag * a_fac * f_arg +
                     v_flag * a_fac * v2_arg) * rates_arg, axis=1) +
             thal_flag * q_thal * thal_arg * thal_fac * in_arg + vip_flag * q_vip * vip_in_arg
-            - thresholds) + baseline) / tau
+            - thresholds, exc_r) + baseline) / tau
     # wc_fcn = lambda rates_arg, d_arg, v_arg, f_arg, v2_arg, thal_arg, in_arg, vip_in_arg: (1 - rates_arg) / tau_d1 - \
     # rates_arg * in_arg / tau_d2
 
@@ -87,7 +103,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
 
         # image change following
         if 0.4495 * steps < i < 0.4505 * steps and i_t[i] > 0 and i_t[i-1] == 0 and np.mod(mode, 2):
-            thal_input[i + 1] = 0.8 / thal_fac
+            thal_input[i + 1] = thal_change / thal_fac
 
         d_dt = wc_fcn(f_rates[i, :], D[i+1], V[i+1], F[i+1], V2[i+1], thal_input[i+1], i_t[i], vip_in[i])
         f_rates[i+1, :] = forward_euler_rates(d_dt, f_rates[i, :], dt)
@@ -103,7 +119,8 @@ def unit_gen(arr, no_of_units):
 
 def exe_wilson_cowan():
     # Mode config
-    mode = 3
+    mode = 4
+    nov_plus = 0.5  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
                 "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
@@ -127,7 +144,7 @@ def exe_wilson_cowan():
     inter_stim_dur = 500 * 1e-3
     inter_trial_dur = 1250 * 1e-3
 
-    trial_pulses = 7 + 8 * np.mod(mode, 2)
+    trial_pulses = 7 + 8 * np.mod(mode, 2)  # 15 for omissions, 7 for changes
 
     # Higher order input (Top down)
     if mode == 0:
@@ -139,15 +156,15 @@ def exe_wilson_cowan():
     elif mode == 3:
         q_vip, vip_in = ho.img_change_nov(dt, steps, t_ges, trial_pulses)
     elif mode == 4:
-        q_vip, vip_in = ho.img_omission_novp(dt, steps, t_ges, stim_dur, trial_pulses)
+        q_vip, vip_in = ho.img_omission_mix(dt, steps, t_ges, stim_dur, trial_pulses, nov_plus)
     else:
-        q_vip, vip_in = ho.img_change_novp(dt, steps, t_ges, stim_dur, trial_pulses)
+        q_vip, vip_in = ho.img_change_mix(dt, steps, t_ges, stim_dur, trial_pulses, nov_plus)
 
     # Input stimulus (Bottom up)
     q_thal = 2.0
     i_t = cont_pulse_trials(0, 0, stim_dur, inter_stim_dur, inter_trial_dur, trial_pulses, steps, dt)
 
-    [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag)
+    [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus)
 
     # Std plots
     plt.figure()
