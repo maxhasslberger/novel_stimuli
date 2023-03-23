@@ -4,6 +4,8 @@ import higher_order as ho
 import numpy as np
 # from itertools import combinations
 import matplotlib.pyplot as plt
+from moviepy.video.io.bindings import mplfig_to_npimage
+from moviepy.editor import VideoClip
 
 
 def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus):
@@ -111,17 +113,19 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag,
     return f_rates, thal_input*thal_fac, F, D
 
 
-def exe_wilson_cowan():
-    # Mode config
-    mode = 4
-    nov_plus = 0.3  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
+def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.05 * 1e-3):
+    # # Mode config
+    # mode = 4
+    # nov_plus = 0.3  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
 
     mode_str = ["Image Omission - Familiar", "Image Change - Familiar", "Image Omission - Novel",
-                "Image Change - Novel", "Image Omission - Novel +", "Image Change - Novel +"]
+                "Image Change - Novel",
+                "Image Omission - Novel+ - " + "%.1f" % (nov_plus*100) + "%",
+                "Image Change - Novel+ - " + "%.1f" % (nov_plus*100) + "%"]
     xlims = [[4.4, 6.3], [3.7, 4.8], [4.4, 6.3], [3.7, 4.8], [4.4, 6.3], [3.7, 4.8]]
 
-    # dt = 0.05 * 1e-3 / dt_i  # s
-    dt = 0.05 * 1e-3  # s
+    # # dt = 0.05 * 1e-3 / dt_i  # s
+    # dt = 0.05 * 1e-3  # s
     t_ges = 10  # s
     steps = int(np.ceil(t_ges / dt))
 
@@ -160,10 +164,26 @@ def exe_wilson_cowan():
 
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus)
 
-    plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims)
+    obj = plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims,
+                     plot=False)
+
+    return obj
 
 
-def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims):
+def create_video_from_plots(plots, filename, fps):
+    # Define a function to convert a plot to an image
+    def plot_to_npimage(plot):
+        plot.set_size_inches(6, 4)
+        return mplfig_to_npimage(plot)
+
+    # Create a video clip from the list of plots
+    clip = VideoClip(lambda t: plot_to_npimage(plots[int(t * fps)]), duration=len(plots) / fps)
+
+    # Write the video file
+    clip.write_videofile(filename, fps=fps, codec='libx264')
+
+
+def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims, plot=True):
 
     # Std plots
     plt.figure()
@@ -212,11 +232,17 @@ def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges,
         plt.plot(time, vip_in * q_vip * scale_fac)
         plt.plot(time, f_rates[:-1, i])
 
-        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
+        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",# Bug: scales not always the same!
                     "Top-down input (x" + str(round(scale_fac, 2)) + ")",
                     population[i] + " Activity (normalized)"])
-        plt.title(mode_str[mode])
-        plt.xlabel("t / s")
-        plt.xlim(xlims[mode])
-        # plt.ylim(-0.05, 1.05)
-    plt.show()
+    plt.title(mode_str[mode])
+    plt.xlabel("t / s")
+    plt.xlim(xlims[mode])
+    # plt.ylim(-0.05, 1.05)
+
+    obj = plt.gcf()
+
+    if plot:
+        plt.show()
+
+    return obj
