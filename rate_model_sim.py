@@ -113,7 +113,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag,
     return f_rates, thal_input*thal_fac, F, D
 
 
-def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.1 * 1e-3, ylims=None):
+def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.1 * 1e-3, ylims=None, plot=False):
     # # Mode config
     # mode = 4
     # nov_plus = 0.3  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
@@ -165,7 +165,7 @@ def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.1 * 1e-3, ylims=None):
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus)
 
     obj = plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims, ylims,
-                     plot=False)
+                     plot=plot)
 
     return obj
 
@@ -196,20 +196,22 @@ def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges,
         plt.plot(time, f_rates[:, i], scatter[i])
 
     plt.legend(['exc', 'pv', 'sst', 'vip'])
-    plt.title("Firing rates Exp1")
+    plt.title("Firing rates")
     plt.xlabel("t / s")
-    # plt.ylim(0, 0.6)
+    plt.xlim(xlims[mode])
+    plt.ylim(-0.05, 1.0)
 
     plt.figure()
     time = np.arange(0, t_ges + dt, dt)
 
     plt.plot(time, fac)
-    plt.plot(time, dep)
+    plt.plot(time, dep, '.')
     plt.plot(time, thal_input)
 
-    plt.legend(['F', 'D', 'Thalamic input'])
+    plt.legend(['F', 'D', 'Thalamic input'], loc=6)
     plt.title("Short-term plasticity")
     plt.xlabel("t / s")
+    plt.xlim(xlims[mode])
 
     plt.figure()
 
@@ -221,6 +223,7 @@ def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges,
     plt.legend(['Stimulus', 'Higher Order'])
     plt.title("Input signals")
     plt.xlabel("t / s")
+    plt.xlim(xlims[mode])
 
     # Presentation plots
     time = np.arange(0, t_ges, dt)
