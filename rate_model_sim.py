@@ -113,7 +113,7 @@ def run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag,
     return f_rates, thal_input*thal_fac, F, D
 
 
-def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.05 * 1e-3):
+def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.1 * 1e-3, ylims=None):
     # # Mode config
     # mode = 4
     # nov_plus = 0.3  # Only for novel+ cases: 1.0 -> familiar; 0.0 -> novel
@@ -164,7 +164,7 @@ def exe_wilson_cowan(mode=4, nov_plus=0.3, dt=0.05 * 1e-3):
 
     [f_rates, thal_input, F, D] = run_sim(mode, i_t, vip_in, q_thal, q_vip, f_flag, d_flag, dt, steps, v_flag, nov_plus)
 
-    obj = plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims,
+    obj = plot_rates(D, F, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims, ylims,
                      plot=False)
 
     return obj
@@ -183,7 +183,8 @@ def create_video_from_plots(plots, filename, fps):
     clip.write_videofile(filename, fps=fps, codec='libx264')
 
 
-def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims, plot=True):
+def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges, thal_input, vip_in, xlims, ylims,
+               plot=True):
 
     # Std plots
     plt.figure()
@@ -225,22 +226,29 @@ def plot_rates(dep, fac, dt, f_rates, i_t, mode, mode_str, q_thal, q_vip, t_ges,
     time = np.arange(0, t_ges, dt)
     population = ["Excitatory", "PV", "SST", "VIP"]
 
+    obj = []
+
     for i in range(f_rates.shape[1]):
         plt.figure()
-        scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+
+        if ylims is not None:
+            plt.ylim(ylims[i])
+            scale_fac = ylims[i][1] / max(q_thal, q_vip) / 2
+        else:
+            scale_fac = max(f_rates[:-1, i]) / max(q_thal, q_vip) / 2
+
         plt.plot(time, i_t * q_thal * scale_fac)
         plt.plot(time, vip_in * q_vip * scale_fac)
         plt.plot(time, f_rates[:-1, i])
 
-        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",# Bug: scales not always the same!
+        plt.legend(["Bottom-up input (x" + str(round(scale_fac, 2)) + ")",
                     "Top-down input (x" + str(round(scale_fac, 2)) + ")",
-                    population[i] + " Activity (normalized)"])
-    plt.title(mode_str[mode])
-    plt.xlabel("t / s")
-    plt.xlim(xlims[mode])
-    # plt.ylim(-0.05, 1.05)
+                    population[i] + " Activity (normalized)"], loc=9)
+        plt.title(mode_str[mode])
+        plt.xlabel("t / s")
+        plt.xlim(xlims[mode])
 
-    obj = plt.gcf()
+        obj.append(plt.gcf())
 
     if plot:
         plt.show()
